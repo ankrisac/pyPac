@@ -1,7 +1,7 @@
-import GUI
-import Renderer
-import Events
-import Mover
+import user_interface as GUI
+import maze_renderer as Renderer
+import events as Events
+import maze_mover as Mover
 
 keyboard = Events.KeyBoard_Event()
 mouse = Events.Mouse_Event()
