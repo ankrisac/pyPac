@@ -68,11 +68,11 @@ class Event(object):
         else:
             return self._key_val[ord(i)]
 
-    def is_pressed(self):
+    def mouse_is_pressed(self):
         return self._mouse_pressed
 
-    def moved(self):
+    def mouse_moved(self):
         return self._mouse_moved
 
-    def pos(self):
+    def mouse_pos(self):
         return self._mouse_pos

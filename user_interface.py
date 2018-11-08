@@ -41,6 +41,9 @@ class Frame(Elem):
     def get_elem(self, i):
         return self._elems[i]
 
+    def clear_elem(self):
+        self._elems = []
+
     def pop_elem(self):
         self._elems.pop()
 

@@ -1,7 +1,7 @@
 import user_interface as GUI
 import maze_renderer as Renderer
 import events as Events
-import maze_mover as Mover
+import maze_entity as Mover
 
 keyboard = Events.KeyBoard_Event()
 mouse = Events.Mouse_Event()
@@ -65,104 +65,122 @@ class MazeState:
             j.render(self)
 """
 
-class MainMenu(object):
-    def __init__(self, parent):
-        def _add_button(x1, y1, x2, y2, txt, callback):
-            textbox = GUI.TextBox(x1, y1, x2, y2, txt, self.default_theme)
+class State(object):
+    def __init__(self, parent_state):
+        self.parent_state = parent_state
 
-            def p_fun():
-                textbox.set_theme(self.highlight_theme)
-                callback()
+        self.parent_state.window.clear_elem()
+        self.parent_state.window.push_elem(GUI.Box(0, 0, 1, 1, self.parent_state.back_theme))
 
-            def r_fun():
-                textbox.set_theme(self.default_theme)
-
-            self.window_mainmenu.push_elem(textbox)
-            self.window_mainmenu.push_elem(GUI.Button(x1, y1, x2, y2, p_fun, r_fun))
-
-        self.back_theme = GUI.Theme(100, 95, 1, 20, 50)
-        self.default_theme = GUI.Theme(95, 90, 1, 20, 50)
-        self.highlight_theme = GUI.Theme(100, 95, 1, 20, 50)
-
-        self.window_mainmenu = GUI.Window(0, 0, window_width, window_height)
-        self.window_mainmenu.push_elem(GUI.Box(-1, -1, 2, 2, self.back_theme))
-
-        x = 0.5
-        y = 0.5
-
-        w = 0.6
-        h = 0.1
-        
-        dy = 0.025
-
-        button_lst = [("PLAY", lambda: None),
-                      ("EDITOR", lambda: None),
-                      ("SETTINGS", lambda: None),
-                      ("QUIT", lambda: None),]
-
-        for i in button_lst:
-            _add_button(x - 0.5 * w, y, x + 0.5 * w, y + h, i[0], i[1])
-            y += h + dy
-
-        self.win = self.window_mainmenu
+    def change_state(self, state):
+        self.parent_state.current_state = state(self.parent_state)
 
     def update(self, event):
         if event.get_event_time() > 10:
             event.poll()
-            self.win.update(event)
-        self.win.render()
+            self.parent_state.window.update(event)
+
+        self.parent_state.window.render()
+
+    def add_button(self, x1, y1, x2, y2, txt, callback):
+        textbox = GUI.TextBox(x1, y1, x2, y2, txt, self.parent_state.default_theme)
+
+        def p_fun():
+            textbox.set_theme(self.parent_state.highlight_theme)
+
+        def r_fun():
+            textbox.set_theme(self.parent_state.default_theme)
+            callback()
+
+        self.parent_state.window.push_elem(textbox)
+        self.parent_state.window.push_elem(GUI.Button(x1, y1, x2, y2, p_fun, r_fun))
+
+class State_MainMenu(State):
+    def set_player(self):
+        self.change_state(State_Player)
+
+    def set_editor(self):
+        self.change_state(State_Editor)
+
+    def set_settings(self):
+        self.change_state(State_Settings)
+
+    def set_quit(self):
+        self.parent_state.quit()
+
+    def __init__(self, parent_state):
+        super(State_MainMenu, self).__init__(parent_state)
+        self.add_button(0.2, 0.50, 0.8, 0.58, "PLAY", self.set_player)
+        self.add_button(0.2, 0.60, 0.8, 0.68, "EDITOR", self.set_editor)
+        self.add_button(0.2, 0.70, 0.8, 0.78, "SETTINGS", self.set_settings)
+        self.add_button(0.2, 0.80, 0.8, 0.88, "QUIT", self.set_quit)
+
+class State_Player(State):
+    def set_back(self):
+        self.change_state(State_MainMenu)
+
+    def __init__(self, parent_state):
+        super(State_Player, self).__init__(parent_state)
+        self.add_button(0, 0, 0.2, 0.1, "BACK", self.set_back)
+
+class State_Settings(State):
+    def set_keybindings(self):
+        self.change_state(State_KeyBindings)
+
+    def set_back(self):
+        self.change_state(State_MainMenu)
+
+    def __init__(self, parent_state):
+        super(State_Settings, self).__init__(parent_state)
+        self.add_button(0.2, 0.50, 0.8, 0.58, "KEY BINDINGS", self.set_keybindings)
+        self.add_button(0.2, 0.60, 0.8, 0.68, "BACK", self.set_back)
+
+class State_KeyBindings(State):
+    def set_back(self):
+        self.change_state(State_MainMenu)
+
+    def __init__(self, parent_state):
+        super(State_KeyBindings, self).__init__(parent_state)
+        self.add_button(0.2, 0.10, 0.8, 0.18, "KEY UP    - ", lambda: None)
+        self.add_button(0.2, 0.20, 0.8, 0.28, "KEY DOWN  - ", lambda: None)
+        self.add_button(0.2, 0.30, 0.8, 0.38, "KEY LEFT  - ", lambda: None)
+        self.add_button(0.2, 0.40, 0.8, 0.48, "KEY RIGHT - ", lambda: None)
+        self.add_button(0.2, 0.50, 0.8, 0.58, "BACK", self.set_back)
+
+class State_Editor(State):
+    def set_main_menu(self):
+        self.change_state(State_MainMenu)
+
+    def __init__(self, parent_state):
+        super(State_Editor, self).__init__(parent_state)
+        self.add_button(0.2, 0.80, 0.8, 0.88, "BACK", self.set_main_menu)
+
+class UI_Controller(object):
+    def quit(self):
+        exit()
+
+    def __init__(self):
+        self.back_theme = GUI.Theme(100, 95, 1, 20, 50)
+        self.default_theme = GUI.Theme(95, 90, 1, 20, 50)
+        self.highlight_theme = GUI.Theme(100, 95, 1, 20, 50)
+
+        self.window = GUI.Window(0, 0, window_width, window_height)
+
+        self.current_state = State_MainMenu(self)
+
+    def update(self, event):
+        self.current_state.update(event)
 
 class GameState:
     def __init__(self):
         try:
-            self.main_menu = MainMenu(self)
-            self.update_func = self.main_menu.update
-
-            self.maze_state = None
-
             self.event = Events.Event(keyboard, mouse)
-            self.cursor = PVector(0, 0)
+            self.main_menu = UI_Controller()
         except Exception as ex:
             print("Gamestate err : " + str(ex))
 
-    def single_player(self):
-        self.maze_state.render()
-
-    def maze_editor(self):
-        background(50)
-
-        if self.event.get_event_time() > 100:
-            self.event.poll()
-
-            self.escape_to_menu()
-
-            t_vec = self.cursor.copy()
-            if self.event.key_is_pressed(Event.KEY_UP):
-                t_vec += PVector(0, -1)
-            if self.event.key_is_pressed(Event.KEY_DOWN):
-                t_vec += PVector(0, +1)
-            if self.event.key_is_pressed(Event.KEY_LEFT):
-                t_vec += PVector(-1, 0)
-            if self.event.key_is_pressed(Event.KEY_RIGHT):
-                t_vec += PVector(+1, 0)
-
-            if self.maze.is_valid_cell(t_vec.x, t_vec.y):
-                self.cursor = t_vec
-            for x in range(Cell.CELL_BEGIN, Cell.CELL_END + 1):
-                if self.event.key_is_pressed(str(x)):
-                    self.maze.update_cell(int(self.cursor.x), int(self.cursor.y), x)
-
-        def _cell_func(R):
-            strokeWeight(R/10)
-            stroke(100, 100)
-            fill(100, 25)
-            rect(0, 0, R, R)
-
-        self.maze.draw_maze()
-        self.maze.render_cell(self.cursor.x, self.cursor.y, _cell_func)
-
     def update(self):
-        self.update_func(self.event)
+        self.main_menu.update(self.event)
 
 def setup():
     global window_width
