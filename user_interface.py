@@ -123,6 +123,15 @@ class Theme(object):
         self.font_size = font_size
         self.text_mode = Theme.TextMode.CENTER
 
+    def set_font_color(self, font_color):
+        self.font_color = font_color
+
+    def set_font_size(self, font):
+        self.font_size = font
+
+    def set_text_mode(self, mode):
+        self.text_mode = mode
+
 class DisplayElem(Elem):
     def __init__(self, x1 = 0, y1 = 0, x2 = 1, y2 = 1, theme = Theme()):
         super(DisplayElem, self).__init__(x1, y1, x2, y2)

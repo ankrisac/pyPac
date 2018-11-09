@@ -1,19 +1,65 @@
+class Key(object):
+    BEGIN = 0
+    BACKSPACE = BEGIN
+
+    RETURN = BACKSPACE + 1
+    ESCAPE = RETURN + 1
+    DELETE = RETURN + 2
+
+    UP    = DELETE + 1
+    DOWN  = UP + 1
+    LEFT  = UP + 2
+    RIGHT = UP + 3
+
+    TAB   = RIGHT + 1
+    SHIFT = TAB + 1
+    CTRL  = TAB + 2
+    ALT   = TAB + 3
+
+    KEY_END = ALT + 1
+
+def isKey(key):
+    return isinstance(i, str) and len(i) == 1
+
+def isSpecialKey(key):
+    return Key.BEGIN <= key < Key.KEY_END and isinstance(key, int)
+
+def key_to_str(i):
+    if isSpecialKey(i):
+        return "SPECIAL KEY"
+    elif isKey(key)
+        return i
+    else:
+        return "ERROR"
+
 class KeyBoard_Event(object):
     def __init__(self):
-        self.key_val = [False for x in range(0, 256)]
+        self.special_key_begin = 256
+        self.key_val = [False for x in range(0, 256 + (Key.END - Key.BEGIN))]
+
+    def _set_key(self, val):
+        for i in range(0, self.special_key_begin):
+            if key == chr(i):
+                self.key_val[i] = val
+        if key == CODED:
+            lst = [BACKSPACE, RETURN, ESC, DELETE, UP, DOWN, LEFT, RIGHT, TAB, SHIFT, CONTROL, ALT]
+            for i in Key:
+                if key == lst[i]:
+                    self.key_val[i + self.special_key_begin] = val
 
     def press(self):
-        for i in range(0, len(self.key_val)):
-            if key == chr(i):
-                self.key_val[i] = True
+        self._set_key(True)
 
     def release(self):
-        for i in range(0, len(self.key_val)):
-            if key == chr(i):
-                self.key_val[i] = False
+        self._set_key(False)
 
     def is_pressed(self, i):
-        return self.key_val[ord(i)]
+        if isSpecialKey(i):
+            return self.key_val[self.skey_begin + i]
+        elif type(i) == str and len(i) == 1:
+            return self.key_val[ord(i)]
+        else:
+            return False
 
 class Mouse_Event(object):
     def __init__(self):
@@ -30,12 +76,6 @@ class Mouse_Event(object):
         self.mouse_pos = PVector(mouseX, mouseY)
 
 class Event(object):
-    KEY_UP = "w"
-    KEY_DOWN = "s"
-    KEY_LEFT = "a"
-    KEY_RIGHT = "d"
-    KEY_ENTER = ENTER
-
     def __init__(self, keyboard, mouse):
         self._keyboard = keyboard
         self._mouse = mouse
@@ -60,13 +100,13 @@ class Event(object):
         return (millis() - self._event_time)
 
     def key_is_pressed(self, i):
-        if isinstance(i, list):
-            for iter in i:
-                if self._key_val[ord(i)]:
-                    return True
-            return False
-        else:
-            return self._key_val[ord(i)]
+        return self._key_val[ord(i)]
+    
+    def key_pressed(self):
+        for i in range(0, len(self._key_val)):
+            if self._key_val[ord[i]]:
+                return i
+        return None
 
     def mouse_is_pressed(self):
         return self._mouse_pressed
