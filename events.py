@@ -16,18 +16,18 @@ class Key(object):
     CTRL  = TAB + 2
     ALT   = TAB + 3
 
-    KEY_END = ALT + 1
+    END = ALT + 1
 
 def isKey(key):
     return isinstance(i, str) and len(i) == 1
 
 def isSpecialKey(key):
-    return Key.BEGIN <= key < Key.KEY_END and isinstance(key, int)
+    return Key.BEGIN <= key < Key.END and isinstance(key, int)
 
 def key_to_str(i):
     if isSpecialKey(i):
         return "SPECIAL KEY"
-    elif isKey(key)
+    elif isKey(i):
         return i
     else:
         return "ERROR"
