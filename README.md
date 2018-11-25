@@ -2,6 +2,6 @@
 
 PacMan clone created in Processing.py
 
-Features
-  - Shaders to emulate Arcade Look
+# Features
+  - Arcade Style Shaders
   - Level Editor
