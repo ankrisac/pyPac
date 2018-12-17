@@ -1,7 +1,4 @@
-# PacMaker
+# PyRAE - Python Retro Arcade Emulator
 
-PacMan clone created in Processing.py
-
-# Features
-  - Arcade Style Shaders
-  - Level Editor
+Arcade Emulator
+Created in Processing.py
