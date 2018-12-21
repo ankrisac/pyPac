@@ -320,9 +320,11 @@ class FrameBuffer(Widget):
     def set_buffer_corners(self, x1 = 0, y1 = 0, x2 = 1, y2 = 1):
         self.buffer_pos_1 = PVector(x1, y1)
         self.buffer_pos_2 = PVector(x2, y2)
+        return self
 
     def set_shader(self, shader = None):
         self.shader = shader
+        return self
 
     def set_buffer(self, image = None):
         self.image = image
@@ -346,6 +348,7 @@ class FrameBuffer(Widget):
             buffer.popMatrix()
 
         buffer.resetShader()
+        return self
 
 class Label(Widget):
     def __init__(self):

@@ -71,7 +71,7 @@ class SpriteAnimation(Sprite):
         self.loop = True
 
     def reset(self):
-        self._t = 0
+        self._t = millis()
         return self
 
     def set_length(self, t = 1000):
@@ -170,7 +170,7 @@ class Entity(object):
 
     def render(self, buffer, sprite_renderer):
         buffer.pushMatrix()
-        buffer.translate(self.pos_x+0.5, self.pos_y+0.5)
+        buffer.translate(self.pos_x + 0.5, self.pos_y + 0.5)
         buffer.rotate(self.angle)
         buffer.translate(-0.5, -0.5)
 
@@ -184,17 +184,9 @@ class TileGrid(Entity):
         super(TileGrid, self).__init__()
         self.set_buffer([])
 
-    def get_max_rows(self):
-        return self._max_rows
-    
-    def get_max_cols(self):
-        return self._max_cols
-
-    def get_tile(self, x, y):
-        if 0 <= x < self._max_cols and 0 <= y < self._max_rows:
-            return self._tile_buffer[int(y)][int(x)]
-        else:
-            return None
+    get_max_rows = lambda self: self._max_rows
+    get_max_cols = lambda self: self._max_cols
+    get_tile = lambda self, x, y: self._tile_buffer[int(y)][int(x)] if (0 <= x < self._max_cols and 0 <= y < self._max_rows) else None
 
     def set_tile(self, x, y, val):
         if 0 <= x < self._max_cols and 0 <= y < self._max_rows:
@@ -253,12 +245,10 @@ class Frame(object):
         self._renderer = renderer
         return self
 
-    def get_frame_buffer(self):
-        return self._frame_buffer
+    get_frame_buffer = lambda self: self._frame_buffer
 
     def resize(self, width, height):
-        self._width = width
-        self._height = height
+        self._width, self._height = (width, height)
         self._frame_buffer = createGraphics(int(self._width), int(self._height), P3D)
         return self
 
@@ -267,8 +257,7 @@ class Frame(object):
         return self
 
     def set_tile_scale(self, tile_width = 1, tile_height = 1):
-        self._tile_width = tile_width
-        self._tile_height = tile_height
+        self._tile_width, self._tile_height = (tile_height, tile_height)
         return self
 
     def set_child_entities(self, lst):

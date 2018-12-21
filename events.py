@@ -18,17 +18,17 @@ class Key(object):
 
     END = ALT + 1
 
-def isKey(key):
-    return isinstance(i, str) and len(i) == 1
+def isKey(i):
+    return isinstance(i, unicode)
 
-def isSpecialKey(key):
-    return Key.BEGIN <= key < Key.END and isinstance(key, int)
+def isSpecialKey(i):
+    return isinstance(i, int)
 
 def key_to_str(i):
     if isSpecialKey(i):
-        return "SPECIAL KEY"
+        return "SPECIAL KEY : " + str(i)
     elif isKey(i):
-        return i
+        return "KEY : " + str(i)
     else:
         return "ERROR"
 
@@ -72,6 +72,7 @@ class keyData(object):
             return self.key_val[ord(val)]
 
     def any_key_pressed(self):
+        
         for i in self.key_val + self.special_key:
             if i == True:
                 return True
@@ -82,10 +83,10 @@ class KeyBoard_Event(object):
         self.key_data = keyData()
 
     def press(self):
-        self.key_data.set_key(this.key, this.keyCode, True)
+        self.key_data.set_key(key, keyCode, True)
 
     def release(self):
-        self.key_data.set_key(this.key, this.keyCode, False)
+        self.key_data.set_key(key, keyCode, False)
 
     def is_pressed(self, i):
         return self.key_data.is_pressed(i)
@@ -93,6 +94,7 @@ class KeyBoard_Event(object):
 class Mouse_Event(object):
     def __init__(self):
         self.mouse_pos = PVector(0, 0)
+        self.mouse_dir = PVector(0, 0)
         self.mouse_pressed = False
 
     def press(self):
@@ -102,7 +104,10 @@ class Mouse_Event(object):
         self.mouse_pressed = False
 
     def move(self):
-        self.mouse_pos = PVector(mouseX, mouseY)
+        m = PVector(mouseX, mouseY)
+
+        self.mouse_dir = m - self.mouse_pos
+        self.mouse_pos = m
 
 class Event(object):
     def __init__(self, keyboard, mouse):
@@ -123,6 +128,7 @@ class Event(object):
 
         self._mouse_moved = (self._mouse_pos != self._mouse.mouse_pos)
         self._mouse_pos = self._mouse.mouse_pos
+        self._mouse_dir = self._mouse.mouse_dir
         self._mouse_pressed = self._mouse.mouse_pressed
 
     def get_event_time(self):
@@ -145,3 +151,6 @@ class Event(object):
 
     def mouse_pos(self):
         return self._mouse_pos
+
+    def mouse_dir(self):
+        return self._mouse_dir

@@ -3,122 +3,125 @@ import tile_map as TL
 import events as Ev
 import copy
 import random
+import math
 
 class NoneEntity(TL.Entity):
     pass
 
 class Tile(TL.Entity):
-    pass
+    def __init__(self):
+        super(Tile, self).__init__()
+        self.score_value = 0
+    
+    def is_wall(self):
+        return False
+
+    def eat(self):
+        pass
 
 class TileUndefined(Tile):
+    Sprite = None
+
     def __init__(self):
         super(TileUndefined, self).__init__()
-        self.set_sprite(TL.load_sprite("sprites/undefined.png"))
+
+        if TileUndefined.Sprite == None:
+            TileUndefined.Sprite = TL.load_sprite("sprites/undefined.png")
+        self.set_sprite(TileUndefined.Sprite)
 
 class TileEmpty(Tile):
+    Sprite = None
+
     def __init__(self):
         super(TileEmpty, self).__init__()
-        self.set_sprite(TL.load_sprite("sprites/wall/empty.png"))
+
+        if TileEmpty.Sprite == None:
+            TileEmpty.Sprite = TL.load_sprite("sprites/wall/empty.png")
+        self.set_sprite(TileEmpty.Sprite)
 
 class TileFood(Tile):
+    Sprite = None
+
     def __init__(self):
         super(TileFood, self).__init__()
-        self.set_sprite(TL.load_sprite("sprites/food/food.png"))
-        
+        self.score_value = 10
+
+        if TileFood.Sprite == None:
+            TileFood.Sprite = TL.load_sprite("sprites/food/food.png")
+        self.set_sprite(TileFood.Sprite)
+
 class TilePowerPellet(TileFood):
+    Sprite = None
+
     def __init__(self):
         super(TilePowerPellet, self).__init__()
-        self.set_sprite(TL.load_sprite("sprites/food/powerpellet.png"))
-    
+        self.score_value = 50
+
+        if TilePowerPellet.Sprite == None:
+            TilePowerPellet.Sprite = TL.load_sprite("sprites/food/powerpellet.png")
+        self.set_sprite(TilePowerPellet.Sprite)
+
 class TileWall(Tile):
+    Sprite = None
+
     def __init__(self):
         super(TileWall, self).__init__()
-        self.set_sprite(TL.load_sprite("sprites/wall/wall.png"))
+
+        if TileWall.Sprite == None:
+            TileWall.Sprite = TL.load_sprite("sprites/wall/wall.png")
+        self.set_sprite(TileWall.Sprite)
+        
+    def is_wall(self):
+        return True
 
 class Mover(TL.Entity):
     def __init__(self, parent):
         super(Mover, self).__init__()
-        self.pos_x = 0
-        self.pos_y = 0
-        
-        self._vel_x = 0
-        self._vel_y = 0
-        
-        self._old_vel_x = 0
-        self._old_vel_y = 0
-        
         self.parent = parent
-        self.moved = False
+
+        self.pos_x, self.pos_y = (0, 0)
+        self.vel_x, self.vel_y = (0, 0)
+        self.pvel_x, self.pvel_y = (0, 0)
         
     def set_vel(self, x, y):
-        self._old_vel_x = self._vel_x
-        self._old_vel_y = self._vel_y
-        
-        self._vel_x = x
-        self._vel_y = y
+        (self.pvel_x, self.pvel_y) = (self.vel_x, self.vel_y)
+        (self.vel_x, self.vel_y) = (x, y)
         
     def update(self):
+        get_tile = lambda x, y: self.parent.maze.get_tile(int(x), int(y))
+        is_wall = lambda x, y: get_tile(x, y).is_wall() if get_tile(x, y) != None else True
+        
+        r = 0.1
         def collide(x, y):
-            def is_empty(x, y):
-                type = self.parent.maze.get_tile(int(x), int(y))
-                
-                if type != None:
-                    return not isinstance(self.parent.maze.get_tile(int(x), int(y)), TileWall)
-                else:
-                    return False
-        
-            r = 0.1
-        
-            x1 = floor(x+r)
-            x2 = ceil(x-r)
+            (x1, y1) = (math.floor(x + r), math.floor(y + r))
+            (x2, y2) = (math.ceil(x - r), math.ceil(y - r))
+            return (is_wall(x1, y1) or is_wall(x1, y2) or is_wall(x2, y1) or is_wall(x2, y2))
             
-            y1 = floor(y+r)
-            y2 = ceil(y-r)
-            
-            if is_empty(x1, y1) and is_empty(x1, y2) and is_empty(x2, y1) and is_empty(x2, y2):
-                return False
-        
-            return True
-        
         def try_to_move(vx, vy):
-            x = self.pos_x
-            y = self.pos_y 
-            px = x + vx
-            py = y + vy
-            if not collide(px, py):
-                self.pos_x = px
-                self.pos_y = py
-            elif not collide(px, y):
-                self.pos_x = px
-                self.pos_y = y
-            elif not collide(x, y):
-                self.pos_x = x
-                self.pos_y = py
-            else:
-                return False
-            return True
+            (x, y) = (self.pos_x, self.pos_y)
+            (px, py) = (x + vx, y + vy)
 
-        if not try_to_move(self._vel_x, self._vel_y):
-            if not try_to_move(self._old_vel_x, self._old_vel_y):
-                self.moved = True
+            if not collide(px, py):
+                (self.pos_x, self.pos_y) = (px, py)
+            elif not collide(px, y):
+                (self.pos_x, self.pos_y) = (px, y)
+            elif not collide(x, y):
+                (self.pos_x, self.pos_y) = (x, py)
             else:
-                self.moved = True
-        else:
-            self.moved = True
+                return True
+            return False
+
+        if not try_to_move(self.vel_x, self.vel_y):
+            try_to_move(self.pvel_x, self.pvel_y)
 
 class Player(Mover):
     def __init__(self, parent):
         super(Player, self).__init__(parent)
-        self.parent = parent
-        self.pos_x = 0
-        self.pos_y = 0
-        
-        self.player_vel = 0.15
+        self.score = 0
+        self.player_vel = 0.10
 
         self.move_animation = TL.load_sprite_animation("sprites/player").set_length(250)
-        self.current_frame = 0
-
-        self.death_animation = TL.load_sprite_animation("sprites/player_death").set_length(5000)
+        self.death_animation = TL.load_sprite_animation("sprites/player_death").set_length(500)
         self.death_animation.loop = False
 
         self.is_alive = True
@@ -135,39 +138,35 @@ class Player(Mover):
 
     def updatefn_move(self):
         super(Player, self).update()
-        self.set_angle(HALF_PI - atan2(self._vel_x, self._vel_y))
-
-        for i in self.parent.ghosts:
-            if round(i.pos_x) == round(self.pos_x) and round(i.pos_y) == round(self.pos_y):
-                self.set_angle(0)
-
-                self.death_animation.reset()
-                self.set_angle(0)
-                self.parent.stop_all_sounds()
-                self.parent.sound_death.play()
-
-                self.update = self.updatefn_die
-                self.set_sprite(self.death_animation)
-                self.parent.update = self.parent.updatefn_gameover
+        self.set_angle(math.pi/2 - math.atan2(self.vel_x, self.vel_y))
 
         cell = self.parent.maze.get_tile(round(self.pos_x), round(self.pos_y))
 
         if isinstance(cell, TileFood):
+            self.score += cell.score_value
+            
             self.parent.maze.set_tile(round(self.pos_x), round(self.pos_y), TileEmpty())
-
+            
             if isinstance(cell, TilePowerPellet):
-                self.powered_up = True
-                for i in self.parent.ghosts:
-                    i.power_down()
-        
-
+                self.parent.power_up()
+                
             if not self.parent.sound_chomp.isPlaying():
                 self.parent.sound_chomp.loop(1)
+            cell.eat()
 
-    def updatefn_die(self):
-        pass
+    def get_eaten(self):
+        self.set_angle(0)
+        self.parent.stop_all_sounds()
+        self.parent.sound_death.play()
 
-def search_dijkstra(x, y, max_rows, max_cols, get_adj_node):
+        self.update = lambda: None
+        self.death_animation.reset()
+        self.set_sprite(self.death_animation)
+        
+        self.get_eaten = lambda: None
+
+
+def search_dijkstra(search_matrix, max_rows, max_cols, get_adj_node):
     path_matrix = [[None for i in range(0, max_cols)] for j in range(0, max_rows)]
     
     def iterate_search(iter_set):
@@ -175,7 +174,7 @@ def search_dijkstra(x, y, max_rows, max_cols, get_adj_node):
     
         for (i, j) in iter_set:
             adj_cell = get_adj_node(i, j)
-    
+
             for (m, n) in adj_cell:
                 if path_matrix[m][n] == None:
                     path_matrix[m][n] = (i, j)
@@ -183,8 +182,35 @@ def search_dijkstra(x, y, max_rows, max_cols, get_adj_node):
     
         return list(set(next_cells))
 
-    path_matrix[x][y] = (0, 0)
-    iter_set = [(x, y)]
+    iter_set = copy.copy(search_matrix)
+    for (i, j) in search_matrix:
+        path_matrix[i][j]
+
+    while iter_set != []:
+        iter_set = iterate_search(iter_set)
+
+    return path_matrix
+
+def search_dijkstra_reverse(search_matrix, max_rows, max_cols, get_adj_node):
+    path_matrix = [[None for i in range(0, max_cols)] for j in range(0, max_rows)]
+    
+    def iterate_search(iter_set):
+        next_cells = []
+    
+        for (i, j) in iter_set:
+            adj_cell = get_adj_node(i, j)
+            
+            path_matrix[i][j] = []
+            for (m, n) in adj_cell:
+                if path_matrix[m][n] is None:
+                    path_matrix[i][j].append((m, n))
+                    next_cells.append((m, n))
+    
+        return list(set(next_cells))
+
+    iter_set = copy.copy(search_matrix)
+    for (i, j) in search_matrix:
+        path_matrix[i][j]
 
     while iter_set != []:
         iter_set = iterate_search(iter_set)
@@ -192,51 +218,154 @@ def search_dijkstra(x, y, max_rows, max_cols, get_adj_node):
     return path_matrix
 
 class Ghost(Mover):
+    Sprite_Eyes = None
+    Sprite_Retreat = None
+    
     def __init__(self, parent):
         super(Ghost, self).__init__(parent)
-        self.parent = parent
-        self.pos_x = 0
-        self.pos_y = 0
+        self.score_value = 1000
         self.ghost_vel = 0.05
+        self.set_home()
         
         (self.next_x, self.next_y) = (0, 0)
 
-        self.set_sprite(TL.load_sprite("sprites/ghost.png"))
+        
+        t1 = 250
+        self.sprite_normal = [TL.load_sprite_animation("sprites/blink_right").set_length(t1),
+                              TL.load_sprite_animation("sprites/blink_up").set_length(t1), 
+                              TL.load_sprite_animation("sprites/blink_left").set_length(t1), 
+                              TL.load_sprite_animation("sprites/blink_down").set_length(t1)]
+        
+        if Ghost.Sprite_Retreat == None:
+            t2 = 500
+            Ghost.Sprite_Retreat = [TL.load_sprite_animation("sprites/chase_right").set_length(t2),
+                                    TL.load_sprite_animation("sprites/chase_up").set_length(t2), 
+                                    TL.load_sprite_animation("sprites/chase_left").set_length(t2), 
+                                    TL.load_sprite_animation("sprites/chase_down").set_length(t2)]
+        if Ghost.Sprite_Eyes == None:
+            Ghost.Sprite_Eyes = [TL.load_sprite("sprites/eyes/eyes_right.png"),
+                                 TL.load_sprite("sprites/eyes/eyes_up.png"),
+                                 TL.load_sprite("sprites/eyes/eyes_left.png"),
+                                 TL.load_sprite("sprites/eyes/eyes_down.png")]
 
-    def update(self):
-        super(Ghost, self).update()
+        self.strategy = self.pursue_player
+        self.set_sprite(self.sprite_normal[-1])
+        
+    def get_angle_index(self):
+        theta = round(2 * math.atan2(self.vel_x, self.vel_y)/math.pi)
+        
+        if theta == 0:
+            return 3
+        elif theta == 1:
+            return 0
+        elif theta == -1:
+            return 2
+        elif theta == 2:
+            return 1
+        elif theta == -2:
+            return 1
+        return 0
+        
+    def set_sprite_normal(self):
+        self.set_sprite(self.sprite_normal[self.get_angle_index()])
+        
+    def set_sprite_retreat(self):
+        self.set_sprite(Ghost.Sprite_Retreat[self.get_angle_index()])
+        
+    def set_sprite_eaten(self):
+        self.set_sprite(Ghost.Sprite_Eyes[self.get_angle_index()])
 
-        (c, r) = (self.parent.maze.get_max_cols(), self.parent.maze.get_max_rows())
-        (px, py) = (int(round(self.parent.player.pos_x)), int(round(self.parent.player.pos_y)))         
+    def set_home(self, x = 0, y = 0):
+        self.home_x, self.home_y = (x, y)
+        return self
 
-        def adj_get(i, j):
-            adj_node = []
+    def _get_adj_nodes(self, i, j):
+        adj_node = []
 
-            for (di, dj) in [(-1, 0), (+1, 0), (0, -1), (0, +1)]:
-                (I, J) = (i + di, j + dj)
+        for (di, dj) in [(-1, 0), (+1, 0), (0, -1), (0, +1)]:
+            (I, J) = (i + di, j + dj)
 
-                if 0 <= I < c and 0 <= J < r and not isinstance(self.parent.maze.get_tile(I, J), TileWall):
-                    adj_node.append((I, J))
+            tile = self.parent.get_maze().get_tile(I, J)
+            if tile != None and not tile.is_wall():
+                adj_node.append((I, J))
 
-            return adj_node
+        return adj_node
 
-        path_matrix = search_dijkstra(px, py, c, r, adj_get)
+    def find_shortest_path(self, lst):
+        (c, r) = (self.parent.maze.get_max_cols(), self.parent.maze.get_max_rows())   
+        path_matrix = search_dijkstra(lst, c, r, self._get_adj_nodes)
 
         (dx, dy) = (abs(round(self.pos_x) - self.next_x), abs(round(self.pos_y) - self.next_y))
-        
-        if (dx < 0.01 or 1 <= dx) and (dy < 0.5 or 1 <= dy):
+        if (dx < 0.01 or 1 <= dx) and (dy < 0.01 or 1 <= dy):
             (self.next_x, self.next_y) = path_matrix[int(round(self.pos_x))][int(round(self.pos_y))]
                     
         (Dx, Dy) = (self.next_x - self.pos_x, self.next_y - self.pos_y)
 
-        h = sqrt(Dx*Dx + Dy*Dy)
+        D = math.sqrt(Dx*Dx + Dy*Dy)
+        return (Dx / D * self.ghost_vel, Dy / D * self.ghost_vel)
 
-        (Dx, Dy) = (Dx/h, Dy/h)
-        self.set_vel(Dx * 0.1, Dy * 0.1)
+    def find_shortest_path_reverse(self, lst):
+        (c, r) = (self.parent.maze.get_max_cols(), self.parent.maze.get_max_rows())   
+        path_matrix = search_dijkstra_reverse(lst, c, r, self._get_adj_nodes)
+    
+        (dx, dy) = (abs(round(self.pos_x) - self.next_x), abs(round(self.pos_y) - self.next_y))
+        if (dx < 0.01 or 1 <= dx) and (dy < 0.01 or 1 <= dy):
+            path = path_matrix[int(round(self.pos_x))][int(round(self.pos_y))]
+            
+            if path != []:
+                (self.next_x, self.next_y) = path[0]
+                    
+        (Dx, Dy) = (self.next_x - self.pos_x, self.next_y - self.pos_y)
+    
+        D = math.sqrt(Dx*Dx + Dy*Dy)
+        return (Dx / D * self.ghost_vel, Dy / D * self.ghost_vel)
 
-    def power_down(self):
-        self.set_sprite(TL.load_sprite("sprites/undefined.png"))
-        self.update = lambda: None
+
+    def update(self):
+        super(Ghost, self).update()
+        self.strategy()
+        return self
+
+    def pursue_player(self):
+        self.set_sprite_normal()
+        if abs(self.pos_x - self.parent.player.pos_x) < 1 and abs(self.pos_y - self.parent.player.pos_y) < 1:
+            self.parent.player.get_eaten()
+        else:
+            self.ghost_vel = 0.05
+            vx, vy = self.find_shortest_path([(int(round(self.parent.player.pos_x)), int(round(self.parent.player.pos_y)))])
+            self.set_vel(vx, vy)
+        return self
+
+    def retreat_player(self):
+        self.set_sprite_retreat()
+        if abs(self.pos_x - self.parent.player.pos_x) < 1 and abs(self.pos_y - self.parent.player.pos_y) < 1:
+            self.get_eaten()
+        else:
+            self.ghost_vel = 0.03
+            vx, vy = self.find_shortest_path_reverse([(int(round(self.parent.player.pos_x)), int(round(self.parent.player.pos_y)))])
+            self.set_vel(vx, vy)
+        return self
+
+    def pursue_home(self):
+        self.set_sprite_eaten()
+        if abs(self.pos_x - self.home_x) < 1 and abs(self.pos_y - self.home_y) < 1:
+            self.strategy = self.pursue_player
+        else:
+            self.ghost_vel = 0.10
+            vx, vy = self.find_shortest_path([(self.home_x, self.home_y)])
+            self.set_vel(vx, vy)
+        return self
+
+    def become_edible(self):
+        self.strategy = self.retreat_player
+        return self
+    
+    def get_eaten(self):
+        self.strategy = self.pursue_home
+        
+        self.parent.player.score += self.score_value
+        if not self.parent.sound_eatghost.isPlaying():
+            self.parent.sound_eatghost.play()
 
 class PacMan(object):
     def __init__(self, minim):
@@ -252,11 +381,14 @@ class PacMan(object):
 
         self.t = 0
 
+    get_maze = lambda self: self.maze
+
     def loadMap(self, path):
         EMPTY = " "
         WALL = "#"
         FOOD = "+"
         POWERPELLET = "-"
+
         PLAYER = "P"
         GHOST = "G"
 
@@ -265,8 +397,7 @@ class PacMan(object):
         self.player = Player(self).set_pos(1, 1)
         self.ghosts = []
 
-        x = 0
-        y = 0
+        (x, y) = (0, 0)
         arr = []
         for i in file.readlines():
             elem = i.replace("\n", "").split(";")
@@ -280,7 +411,7 @@ class PacMan(object):
                     if j == PLAYER:
                         self.player.set_pos(x, y)
                     if j == GHOST:
-                        self.ghosts.append(Ghost(self).set_pos(x, y))
+                        self.ghosts.append(Ghost(self).set_pos(x, y).set_home(x, y))
                     cell = TileEmpty()
                 elif j == EMPTY:
                     cell = TileEmpty()
@@ -314,11 +445,15 @@ class PacMan(object):
 
     def load_sounds(self):
         self.sound_intro = self.minim.loadFile("sounds/beginning.wav")
-        self.sound_chomp = self.minim.loadFile("sounds/chomp.wav")
+        self.sound_chomp = self.minim.loadFile("sounds/chomp.mp3")
         self.sound_death = self.minim.loadFile("sounds/death.wav")
         self.sound_eatfruit = self.minim.loadFile("sounds/eatfruit.wav")
+        self.sound_eatghost = self.minim.loadFile("sounds/eatghost.wav")
         self.sound_extrapac = self.minim.loadFile("sounds/extrapac.wav")
         self.sound_intermission = self.minim.loadFile("sounds/intermission.wav")
+        
+        self.sound_siren = self.minim.loadFile("sounds/siren.mp3")
+        self.sound_siren_retreat = self.minim.loadFile("sounds/siren_retreat.mp3")
 
     def stop_all_sounds(self):
         self.sound_intro.pause()
@@ -327,44 +462,67 @@ class PacMan(object):
         self.sound_eatfruit.pause()
         self.sound_extrapac.pause()
         self.sound_intermission.pause()
+        self.sound_siren.pause()
+        self.sound_siren_retreat.pause()
 
     def updatefn_init(self, event):
-        if not self.sound_intro.isPlaying() or event.any_key_pressed():
+        if event.any_key_pressed() or not self.sound_intro.isPlaying():
             self.update = self.updatefn_game
-            self.stop_all_sounds()
-
+            self.sound_siren.loop()
+        
     def updatefn_paused(self, event):
         if event.key_is_pressed(Ev.Key.ESCAPE):
             self.update = self.updatefn_game
+            self.stop_all_sound()
 
     def updatefn_gameover(self, event):
         pass
 
+    def get_score(self):
+        return "SCORE - " + str(self.player.score) 
+
+    def power_up(self):
+        self.sound_siren.pause()
+        self.sound_siren_retreat.loop()
+        
+        for i in self.ghosts:
+            i.become_edible()
+        
+    def power_down(self):
+        self.sound_siren_retreat.pause()
+        self.sound_siren.loop()
+
+    def player_move(self, event):
+        x, y  = (0, 0)
+            
+        pressed = lambda lst: any([event.key_is_pressed(i) for i in lst])
+            
+        if event.mouse_is_pressed():
+            _dir = event.mouse_dir()
+            _dir.normalize()
+            x, y = round(_dir.x), round(_dir.y)
+
+        if pressed(["a", Ev.Key.LEFT]):
+            x = -1
+        elif pressed(["d", Ev.Key.RIGHT]):
+            x = +1
+        if pressed(["w", Ev.Key.UP]):
+            y = -1
+        elif pressed(["s", Ev.Key.DOWN]):
+            y = +1
+        if event.key_is_pressed(Ev.Key.ESCAPE):
+            self.update = self.updatefn_paused
+
+        if (x, y) != (0, 0):
+            (x, y) = (x / math.sqrt(2), y / math.sqrt(2))
+        if x != 0 or y != 0:
+            self.player.input_motion(x, y)                
+
     def updatefn_game(self, event):
         t = millis()
         if t - self.t > 10:
-            self.t = t
+            self.player_move(event)
             
-            x = 0
-            y = 0
-            
-            if event.key_is_pressed("a"):
-                x = -1
-            elif event.key_is_pressed("d"):
-                x = +1
-            if event.key_is_pressed("w"):
-                y = -1
-            elif event.key_is_pressed("s"):
-                y = +1
-            elif event.key_is_pressed(Ev.Key.ESCAPE):
-                self.update = self.updatefn_paused
-    
-            if x != 0 and y != 0:
-                x /= sqrt(2)
-                y /= sqrt(2)
-            if x != 0 or y != 0:
-                self.player.input_motion(x, y)                
-    
             self.frame.update()
             self.frame.render()
 
