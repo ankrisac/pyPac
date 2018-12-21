@@ -84,15 +84,10 @@ class UI_PlayPacMan(STYLE.UI_State):
             game.update(event)
             game_window.set_buffer(game.get_frame_buffer())
             score.caption.set_text(game.get_score())
-            
-            self.parent.music_theme.rewind()
-            self.parent.music_theme.loop()
 
         self.update_func = _update
         self.center_frame.add_widget(game_window).add_widget(score).add_widget(STYLE.create_label(0.8, 0, 1, 0.05, ""))
         self.left_frame.add_widget(STYLE.create_button(0, 0, 0.2, 0.05, "Menu", quit_game))
-        
-        self.parent.music_theme.pause()
 
 class Highscores(object):
     def __init__(self):
@@ -242,9 +237,6 @@ class Arcade(object):
 
         self.minim = minim
         self.input = self.minim.getLineIn()
-        
-        self.music_theme = self.minim.loadFile("sounds/meglovania.mp3")
-        self.music_theme.loop()
 
     def update(self):
         if not self.stop_loop:
