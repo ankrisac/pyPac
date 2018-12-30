@@ -1,4 +1,6 @@
 import os
+from util import Vec
+import util
 
 class Sprite(object):
     def __init__(self):
@@ -149,20 +151,19 @@ class SpriteRenderer(object):
 
 class Entity(object):
     def __init__(self):
-        self.set_pos(0, 0)
-        self.set_angle(0)
-        self.set_sprite(None)
+        self.set_pos()
+        self.set_angle()
+        self.set_sprite()
 
-    def set_pos(self, x, y):
-        self.pos_x = x
-        self.pos_y = y
+    def set_pos(self, pos = Vec(0, 0)):
+        self.pos = pos
         return self
 
-    def set_angle(self, angle):
+    def set_angle(self, angle = 0):
         self.angle = angle
         return self
     
-    def set_sprite(self, sprite):
+    def set_sprite(self, sprite = None):
         self.sprite = sprite
         return self
     
@@ -171,7 +172,7 @@ class Entity(object):
 
     def render(self, buffer, sprite_renderer):
         buffer.pushMatrix()
-        buffer.translate(self.pos_x + 0.5, self.pos_y + 0.5)
+        buffer.translate(self.pos.x + 0.5, self.pos.y + 0.5)
         buffer.rotate(self.angle)
         buffer.translate(-0.5, -0.5)
 
@@ -191,13 +192,13 @@ class TileGrid(Entity):
     def get_max_cols(self):
         return self._max_cols
 
-    def get_tile(self, x, y):
-        return self._tile_buffer[int(y)][int(x)] if (0 <= x < self._max_cols and 0 <= y < self._max_rows) else None
+    def get_tile(self, pos):
+        return self._tile_buffer[int(pos.y)][int(pos.x)] if (0 <= pos.x < self._max_cols and 0 <= pos.y < self._max_rows) else None
 
-    def set_tile(self, x, y, val):
-        if 0 <= x < self._max_cols and 0 <= y < self._max_rows:
-            self._tile_buffer[int(y)][int(x)] = val
-            val.set_pos(x, y)
+    def set_tile(self, pos, val):
+        if 0 <= pos.x < self._max_cols and 0 <= pos.y < self._max_rows:
+            self._tile_buffer[int(pos.y)][int(pos.x)] = val
+            val.set_pos(pos)
         return self
 
     def set_buffer(self, buffer):
@@ -219,14 +220,14 @@ class TileGrid(Entity):
         for i in self._tile_buffer:
             x = 0
             for j in i:
-                j.set_pos(x, y)
+                j.set_pos(Vec(x, y))
                 x += 1
             y += 1
         return self
         
     def render(self, buffer, sprite_renderer):
         buffer.pushMatrix()
-        buffer.translate(self.pos_x, self.pos_y)
+        buffer.translate(self.pos.x, self.pos.y)
         buffer.rotate(self.angle)
         for i in self._tile_buffer:
             for j in i:
@@ -240,7 +241,7 @@ class TileGrid(Entity):
 
 class Frame(object):
     def __init__(self):
-        self._renderer = SpriteRenderer()
+        self.renderer = SpriteRenderer()
 
         self.set_child_entities([])
         
@@ -248,7 +249,7 @@ class Frame(object):
         self.set_pos()
 
     def set_renderer(self, renderer):
-        self._renderer = renderer
+        self.renderer = renderer
         return self
 
     def get_frame_buffer(self):
@@ -259,20 +260,20 @@ class Frame(object):
         self._frame_buffer = createGraphics(int(self._width), int(self._height), P3D)
         return self
 
-    def set_pos(self, x = 0, y = 0):
-        self._pos = PVector(x, y)
+    def set_pos(self, pos = Vec(0, 0)):
+        self.pos = pos
         return self
 
     def set_tile_scale(self, tile_width = 1, tile_height = 1):
-        self._tile_width, self._tile_height = (tile_height, tile_height)
+        self.tile_width, self.tile_height = (tile_height, tile_height)
         return self
 
     def set_child_entities(self, lst):
-        self._child_entities = lst
+        self.child_entities = lst
         return self
 
     def add_child(self, child):
-        self._child_entities.append(child)
+        self.child_entities.append(child)
         return self
 
     def render(self):
@@ -287,19 +288,19 @@ class Frame(object):
             self._frame_buffer.rectMode(RADIUS)
             self._frame_buffer.ellipseMode(RADIUS)
             self._frame_buffer.background(0)
-            self._frame_buffer.scale(self._tile_width, self._tile_height)
-            self._frame_buffer.translate(self._pos.x, self._pos.y)
+            self._frame_buffer.scale(self.tile_width, self.tile_height)
+            self._frame_buffer.translate(self.pos.x, self.pos.y)
         
-            self._renderer.set_sprite_scale(1, 1)
+            self.renderer.set_sprite_scale(1, 1)
             
-            for i in self._child_entities:
+            for i in self.child_entities:
                 if i != None:
-                    i.render(self._frame_buffer, self._renderer)
+                    i.render(self._frame_buffer, self.renderer)
 
             self._frame_buffer.endDraw()
         return self
 
     def update(self):
-        for i in self._child_entities:
+        for i in self.child_entities:
             i.update()
         return self

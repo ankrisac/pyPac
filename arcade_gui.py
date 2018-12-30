@@ -1,5 +1,5 @@
 import user_interface as UI
-import game_logic as PAC
+import game_pacman as PAC
 import arcade_style as STYLE
 
 import events as EVENTS
@@ -22,7 +22,7 @@ class UI_MainMenu(STYLE.UI_State):
         y = 0.5
         dy = 0.08
         padding = 0.02
-        for i, j in [("Play", UI_Play), ("Highscores", UI_Highscores), ("Options", UI_Options), ("Quit", UI_Exit)]:
+        for i, j in [("Play", UI_Play), ("Options", UI_Options), ("Quit", UI_Exit)]:
             self.center_frame.add_widget(STYLE.create_button(0.2, y, 0.8, y + dy, i, self.parent.create_state_changer(j)))
             y += dy + padding
 

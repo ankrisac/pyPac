@@ -1,10 +1,63 @@
 import user_interface as UI
 
+bgcol = 0
+
+btncol = 20
+btnfnt = 100
+BTNcol = 40
+BTNfnt = 20
+
+lbcol = 10
+lbfnt = 90
+
+def set_style(elem):
+    if isinstance(elem, UI.Button):
+        elem.caption.set_color(btnfnt)
+        elem.frame.set_color(btncol)
+    else:
+        elem.caption.set_color(lbfnt)
+        elem.frame.set_color(lbcol)
+        
+    elem.frame.set_border_size(0)
+    elem.frame.set_border_radius(10000)
+
+def set_style_highlight(elem):
+    set_style(elem)
+    elem.caption.set_color(BTNfnt)
+    elem.frame.set_color(BTNcol)
+
+def set_callback(button, callback):
+    def r(x):
+        callback()
+    
+    def u(x):
+        if button.is_highlighted() or button.is_selected():
+            set_style_highlight(button)
+        else:
+            set_style(button)
+    
+    return button.set_update_callback(u).set_released_callback(r)
+
+def create_button(x1 = 0, y1 = 0, x2 = 1, y2 = 1, text = "", callback = lambda: None):
+    button = UI.Button().set_corners(x1, y1, x2, y2)
+
+    set_style(button)
+    button.caption.set_text(text)
+
+    return set_callback(button, callback)
+
+def create_label(x1, y1, x2, y2, text):
+    label = UI.Label().set_corners(x1, y1, x2, y2)
+    set_style(label)
+    label.caption.set_text(text)
+
+    return label
+
 class UI_State(object):
     def __init__(self, parent):
         self.parent = parent
         self.parent.window.clear_widgets()
-        self.parent.window.set_background(0)
+        self.parent.window.set_background(bgcol)
         self.update_func = lambda x: None
 
         self.left_frame = UI.Panel()
@@ -29,40 +82,3 @@ class UI_State(object):
 
     def add_widget(self, widget):
         self.parent.window.add_widget(widget)
-
-def set_style(elem):
-    elem.caption.set_color(100)
-    elem.frame.set_color(10)
-    elem.frame.set_border_size(0)
-    elem.frame.set_border_radius(0)
-
-def set_style_highlight(elem):
-    set_style(elem)
-    elem.frame.set_color(20)
-    elem.caption.set_color(90)
-
-def set_callback(button, callback):
-    def p(x):
-        set_style_highlight(button)
-
-    def r(x):
-        set_style(button)
-        callback()
-    
-    button.set_pressed_callback(p).set_released_callback(r)
-    return button
-
-def create_button(x1 = 0, y1 = 0, x2 = 1, y2 = 1, text = "", callback = lambda: None):
-    button = UI.Button().set_corners(x1, y1, x2, y2)
-
-    set_style(button)
-    button.caption.set_text(text)
-
-    return set_callback(button, callback)
-
-def create_label(x1, y1, x2, y2, text):
-    label = UI.Label().set_corners(x1, y1, x2, y2)
-    set_style(label)
-    label.caption.set_text(text)
-
-    return label

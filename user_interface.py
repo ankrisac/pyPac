@@ -1,3 +1,5 @@
+from util import Vec
+
 class Widget(object):
     def __init__(self):
         self.set_corners(0, 0, 1, 1)
@@ -12,8 +14,8 @@ class Widget(object):
         return self
 
     def set_corners(self, x1, y1, x2, y2):
-        self.pos_1 = PVector(x1, y1)
-        self.pos_2 = PVector(x2, y2)
+        self.pos_1 = Vec(x1, y1)
+        self.pos_2 = Vec(x2, y2)
         return self
 
     def set_pos(self, x1, y1):
@@ -23,7 +25,7 @@ class Widget(object):
         self.set_corners(x1, y1, x1 + w, y1 + w)
 
     def resize(self, w, h):
-        self.pos_2 = PVector(self.pos_1.x + w, self.pos_2.y + h)
+        self.pos_2 = Vec(self.pos_1.x + w, self.pos_2.y + h)
 
     def get_width(self): 
         return self.pos_2.x - self.pos_1.x
@@ -32,7 +34,7 @@ class Widget(object):
         return self.pos_2.y - self.pos_1.y
 
     def get_absolute_pos(self, pos):
-        t_pos = self.pos_1 + PVector(self.get_width() * pos.x, self.get_height() * pos.y)
+        t_pos = self.pos_1 + Vec(self.get_width() * pos.x, self.get_height() * pos.y)
         
         if self.parent != None:
             return self.parent.get_absolute_pos(t_pos)
@@ -125,7 +127,7 @@ class Window(Panel):
 
     def update_buffer(self):
         if self._buffer != None:
-            self._buffer.noSmooth()
+            #self._buffer.noSmooth()
             self._buffer.beginDraw()
     
             self._buffer.colorMode(RGB, 100)
@@ -318,8 +320,8 @@ class FrameBuffer(Widget):
         self.set_shader()
 
     def set_buffer_corners(self, x1 = 0, y1 = 0, x2 = 1, y2 = 1):
-        self.buffer_pos_1 = PVector(x1, y1)
-        self.buffer_pos_2 = PVector(x2, y2)
+        self.buffer_pos_1 = Vec(x1, y1)
+        self.buffer_pos_2 = Vec(x2, y2)
         return self
 
     def set_shader(self, shader = None):

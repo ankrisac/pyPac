@@ -3,16 +3,13 @@ add_library('minim')
 import events as Events
 import os
 import copy
+import util
 
 window_width = 800
 window_height = 800
 
 def setup():
     size(window_width, window_height, P3D)
-    noSmooth()
-
-    hint(DISABLE_TEXTURE_MIPMAPS)
-    g.textureSampling(3)
 
     try:
         import arcade_gui as ARC
@@ -28,7 +25,7 @@ def setup():
         arcade_state = ARC.Arcade(Minim(this), keyboard, mouse)
         arcade_state.resize(window_width, window_height)
     except Exception as ex:
-        print("Initialization: ", ex)
+        util.Error.log("Initialization", ex)
 
 def draw():
     try:
@@ -43,7 +40,7 @@ def draw():
 
         arcade_state.update()
     except Exception as ex:
-        print("Rendering: ", ex)
+        util.Error.log("Rendering", ex)
 
 
 def keyPressed():
@@ -55,36 +52,36 @@ def keyPressed():
         except:
             pass
     except Exception as ex:
-        print("Key = Pressed: ", ex)
+        util.Error.log("Input", "Key Pressed", ex)
 
 def keyReleased():
     try:
         keyboard.release()
     except Exception as ex:
-        print("Key Released: ", ex)
+        util.Error.log("Input", "Key Released", ex)
 
 def mousePressed():
     try:
         mouse.press()
     except Exception as ex:
-        print("Mouse Pressed: ", ex)
+        util.Error.log("Input", "Mouse Pressed", ex)
 
 def mouseReleased():
     try:
         mouse.release()
     except Exception as ex:
-        print("Mouse Pressed: ", ex)
+        util.Error.log("Input", "Mouse Pressed", ex)
 
 def mouseMoved():
     try:
         mouse.release()
         mouse.move()
     except Exception as ex:
-        print("Mouse Moved: ", ex)
+        util.Error.log("Input", "Mouse Moved", ex)
 
 def mouseDragged():
     try:
         mouse.press()
         mouse.move()
     except Exception as ex:
-        print("Mouse Dragged: ", ex)
+        util.Error.log("Input", "Mouse Dragged", ex)
