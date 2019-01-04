@@ -193,12 +193,13 @@ class TileGrid(Entity):
         return self._max_cols
 
     def get_tile(self, pos):
-        return self._tile_buffer[int(pos.y)][int(pos.x)] if (0 <= pos.x < self._max_cols and 0 <= pos.y < self._max_rows) else None
+        if 0 <= pos.x < self._max_cols and 0 <= pos.y < self._max_rows:
+            return self._tile_buffer[int(pos.y)][int(pos.x)]
+        return None
 
     def set_tile(self, pos, val):
         if 0 <= pos.x < self._max_cols and 0 <= pos.y < self._max_rows:
             self._tile_buffer[int(pos.y)][int(pos.x)] = val
-            val.set_pos(pos)
         return self
 
     def set_buffer(self, buffer):
@@ -223,12 +224,12 @@ class TileGrid(Entity):
                 j.set_pos(Vec(x, y))
                 x += 1
             y += 1
+        
         return self
         
     def render(self, buffer, sprite_renderer):
         buffer.pushMatrix()
         buffer.translate(self.pos.x, self.pos.y)
-        buffer.rotate(self.angle)
         for i in self._tile_buffer:
             for j in i:
                 j.render(buffer, sprite_renderer)

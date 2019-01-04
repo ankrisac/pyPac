@@ -1,10 +1,11 @@
 import user_interface as UI
 import game_pacman as PAC
-import arcade_style as STYLE
+import arcade as STYLE
 
 import events as EVENTS
 import os
 import copy
+import random
 
 class UI_MainMenu(STYLE.UI_State):
     def __init__(self, parent):
@@ -32,13 +33,13 @@ class UI_MainMenu(STYLE.UI_State):
         self.right_frame.add_widget(credit)
 
         def fn_update(event):
-            if random(0, 10) < 2:
-                l0 = 0
-                l1 = 255
+            if random.randint(0, 10) < 2:
+                L0 = 0
+                L1 = 255
                 txt = ""
                 for i in title:
-                    if random(0, 10) < 2:
-                        txt += chr(int(random(l0, l1)))
+                    if random.randint(0, 10) < 2:
+                        txt += chr(random.randint(L0, L1))
                     else:
                         txt += i
 
@@ -59,12 +60,11 @@ class UI_Play(STYLE.UI_State):
             self.center_frame.add_widget(STYLE.create_button(x1, y, x2, y + dy, i, self.parent.create_state_changer(j)))
             y += dy + padding
 
-        for i in ["Unimplemented", "Asteroids", "Snake"]:
+        for i in []:
             self.center_frame.add_widget(STYLE.create_label(x1, y, x2, y + dy, i))
             y += dy + padding
 
         self.center_frame.add_widget(STYLE.create_button(x1, y, x2, y + dy, "BACK", self.parent.create_state_changer(UI_MainMenu)))
-               
 
 class UI_PlayPacMan(STYLE.UI_State):
     def __init__(self, parent):
@@ -168,8 +168,6 @@ class ShaderManager(object):
         self.current_game_shader = 0 
 
     def load_shaders(self):
-        _path = sketchPath()
-        
         def get_shaders_dir(path):
             shaders_path = filter(lambda x: os.path.isfile(os.path.join(path, x)), os.listdir(path))
             shaders_abs_path = map(lambda x: os.path.join(path, x), shaders_path)
@@ -177,7 +175,9 @@ class ShaderManager(object):
 
         def map_shader(name):
             return lambda i: (loadShader(i), name + " - " + os.path.splitext(os.path.basename(i))[0])
-
+        
+        _path = sketchPath()
+        
         self.ui_shaders = map(map_shader("UI Shader"), get_shaders_dir(os.path.join(_path, "shaders", "ui")) + get_shaders_dir(os.path.join(_path, "shaders")))
         self.game_shaders = map(map_shader("Game Shader"), get_shaders_dir(os.path.join(_path, "shaders", "game")) + get_shaders_dir(os.path.join(_path, "shaders")))
         
@@ -231,8 +231,12 @@ class Arcade(object):
         self.highscores = Highscores()
 
         self.window = UI.Window().set_shader(self.shader_manager.get_ui_shader())
+
+        import events as EVENTS
+        import arcade_gui as AG
+
         self.event = EVENTS.Event(keyboard, mouse)
-        self.current_state = UI_MainMenu(self)
+        self.current_state = AG.UI_MainMenu(self)
         self.stop_loop = False
 
         self.minim = minim

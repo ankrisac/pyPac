@@ -1,4 +1,14 @@
 import math
+import time
+import events
+
+begin_time = time.time()
+
+def get_millis():
+    return int(round((time.time() - begin_time) * 1000))
+
+def get_framerate():
+    return events.get_framerate()
 
 class Error(object):
     log_error = True
@@ -50,6 +60,9 @@ class Vec(object):
 
     def __iter__(self):
         return (x for x in [self.x, self.y])
+
+    def __str__(self):
+        return "[{0},{1}]".format(self.x, self.y)
 
     def magsq(self):
         return self.x * self.x + self.y * self.y

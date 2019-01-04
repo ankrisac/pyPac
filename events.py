@@ -1,3 +1,9 @@
+import util
+import copy
+
+def get_framerate():
+    return frameRate
+
 class Key(object):
     BEGIN = 0
     BACKSPACE = BEGIN
@@ -17,20 +23,6 @@ class Key(object):
     ALT   = TAB + 3
 
     END = ALT + 1
-
-def isKey(i):
-    return isinstance(i, unicode)
-
-def isSpecialKey(i):
-    return isinstance(i, int)
-
-def key_to_str(i):
-    if isSpecialKey(i):
-        return "SPECIAL KEY : " + str(i)
-    elif isKey(i):
-        return "KEY : " + str(i)
-    else:
-        return "ERROR"
 
 class keyData(object):
     def __init__(self):
@@ -72,7 +64,6 @@ class keyData(object):
             return self.key_val[ord(val)]
 
     def any_key_pressed(self):
-        
         for i in self.key_val + self.special_key:
             if i == True:
                 return True
@@ -93,8 +84,8 @@ class KeyBoard_Event(object):
 
 class Mouse_Event(object):
     def __init__(self):
-        self.mouse_pos = PVector(0, 0)
-        self.mouse_dir = PVector(0, 0)
+        self.mouse_pos = util.Vec(0, 0)
+        self.mouse_dir = util.Vec(0, 0)
         self.mouse_pressed = False
 
     def press(self):
@@ -104,7 +95,7 @@ class Mouse_Event(object):
         self.mouse_pressed = False
 
     def move(self):
-        m = PVector(mouseX, mouseY)
+        m = util.Vec(mouseX, mouseY)
 
         self.mouse_dir = m - self.mouse_pos
         self.mouse_pos = m
@@ -115,16 +106,16 @@ class Event(object):
         self._mouse = mouse
 
         self._key_val = []
-        self._mouse_pos = PVector(0, 0)
+        self._mouse_pos = util.Vec(0, 0)
         self._mouse_pressed = False
         self._mouse_moved = False
 
-        self._event_time = millis()
+        self._event_time = util.get_millis()
 
     def poll(self):
-        self._event_time = millis()
+        self._event_time = util.get_millis()
         
-        self._key_data = self._keyboard.key_data
+        self._key_data = copy.copy(self._keyboard.key_data)
 
         self._mouse_moved = (self._mouse_pos != self._mouse.mouse_pos)
         self._mouse_pos = self._mouse.mouse_pos
@@ -132,7 +123,7 @@ class Event(object):
         self._mouse_pressed = self._mouse.mouse_pressed
 
     def get_event_time(self):
-        return (millis() - self._event_time)
+        return (util.get_millis() - self._event_time)
 
     def any_key_pressed(self):
         return self._key_data.any_key_pressed()
