@@ -31,7 +31,8 @@ void main() {
     float lineSpaceRatio = 0.75;
     int num_col = 16;
 
-    vec4 col = texture2D(texture, vertTexCoord.xy);
+    vec4 col = (texture2D(texture, vertTexCoord.xy + vec2(texOffset.x, 0)) + texture2D(texture, vertTexCoord.xy + vec2(-texOffset.x, 0))
+             + texture2D(texture, vertTexCoord.xy + vec2(0, texOffset.y)) + texture2D(texture, vertTexCoord.xy + vec2(0, -texOffset.x)))/4;
     
     if(mod(vertTexCoord.y * lines, bLine) >= (bLine * lineSpaceRatio)){
         round_color(col, num_col, col);
