@@ -149,15 +149,9 @@ class Maze(TL.TileGrid):
         super(Maze, self).__init__()
         self.total_food = 0
         self.eaten_food = 0
-    
-    def set_buffer(self, arr):
-        for i in arr:
-            for j in i:
-                if isinstance(j, TileFood):
-                    self.total_food += 1
-
-        super(Maze, self).set_buffer(arr)
-        return self
+                
+    def is_cleared(self):
+        return (self.eaten_food == self.total_food)
 
     def set_tile(self, pos, val):
         if isinstance(val, TileFood):
@@ -175,6 +169,23 @@ class Maze(TL.TileGrid):
         if tile != None:
             return tile.is_wall()
         return True
+
+    def eat_tile(self, player, soundeffect, powerup):
+        pos = player.pos.apply(round)
+        tile = self.get_tile(pos)
+        
+        if tile.edible:
+            player.score += tile.score_value
+            self.eaten_food += 1
+
+            if not soundeffect.isPlaying():
+                soundeffect.rewind()
+                soundeffect.play()
+
+            if isinstance(tile, TilePowerPellet):
+                powerup()
+
+            self.get_tile(pos).eat()
 
     def reset(self):
         r = self.get_max_cols()
@@ -195,25 +206,66 @@ class Maze(TL.TileGrid):
 
         return adj_node
 
-    def eat_tile(self, player, soundeffect, powerup):
-        pos = player.pos.apply(round)
-        tile = self.get_tile(pos)
-        
-        if tile.edible:
-            player.score += tile.score_value
-            self.eaten_food += 1
+    def load_map(self, parent, path, players, ghosts):
+        EMPTY = " "
+        WALL = "#"
+        FOOD = "+"
+        POWERPELLET = "-"
 
-            if not soundeffect.isPlaying():
-                soundeffect.rewind()
-                soundeffect.play()
+        BLINK = "B"
+        CLYDE = "C"
+        INK = "I"
+        SHADOW = "S"
+        GHOSTS = [BLINK, CLYDE, SHADOW, INK, "G"]
 
-            if isinstance(tile, TilePowerPellet):
-                powerup()
+        file = open(path, "r")
 
-            self.get_tile(pos).eat()
-                
-    def is_cleared(self):
-        return (self.eaten_food == self.total_food)
+        (x, y) = (0, 0)
+        arr = []
+        for i in file.readlines():
+            elem = i.replace("\n", "").split(";")
+
+            x = 0
+            row = []
+            for j in elem:
+                cell = TileUndefined()
+                pos = Vec(x, y)
+
+                if j == "P":
+                    players.append(Player(parent).set_pos(pos))
+                    cell = TileEmpty()
+                elif any((j == x for x in GHOSTS)):
+                    fn = Ghost
+                    if j == BLINK:
+                        fn = Blink
+                    elif j == CLYDE:
+                        fn = Clyde
+                    elif j == INK:
+                        fn = Ink
+                    elif j == SHADOW:
+                        fn = Shadow
+                    
+                    ghosts.append(fn(parent).set_pos(pos))
+                    cell = TileGhostHome()
+                elif j == EMPTY:
+                    cell = TileEmpty()
+                elif j == WALL:
+                    cell = TileWall()
+                elif j == FOOD:
+                    cell = TileFood()
+                    self.total_food += 1
+                elif j == POWERPELLET:
+                    cell = TilePowerPellet()
+                    self.total_food += 1
+
+                row.append(cell)
+
+                x += 1
+            arr.append(row)
+            y += 1
+
+        file.close()
+        super(Maze, self).set_buffer(arr)
 
 class Mover(TL.Entity):
     def __init__(self, parent):
@@ -256,7 +308,13 @@ class Mover(TL.Entity):
         if not self.try_to_move(self.vel):
             self.try_to_move(self.pvel)
 
+        self.pos.x = self.pos.x % (self.parent.maze.get_max_cols() - 1)
+        self.pos.y = self.pos.y % (self.parent.maze.get_max_rows() - 1)
+
         self.ppos = self.pos
+
+    def changedTilePos(self):
+        return (self.ppos.apply(round) == self.pos.apply(round))
 
 class Player(Mover):
     def __init__(self, parent):
@@ -266,15 +324,15 @@ class Player(Mover):
         self.death_animation = TL.load_sprite_animation(get_path("player_death")).set_length(500)
         self.death_animation.loop = False
 
-        self.reset()
+        self.respawn()
 
     def set_pos(self, pos = Vec(0, 0)):
         super(Player, self).set_pos(pos)
-        self.initial_pos = pos
+        self.spawn_pos = pos
         return self
 
-    def reset(self):
-        self.pos = self.initial_pos
+    def respawn(self):
+        self.pos = self.spawn_pos
         self.t = 0
         self.set_sprite(self.move_animation)
         return self
@@ -324,11 +382,11 @@ class Ghost(Mover):
         if not hasattr(self, 'sprite_normal'):
             k = ["blink", "ink", "clyde", "shadow"][random.randint(0, 3)] + "_"
             self.sprite_normal = [TL.load_sprite_animation(get_path(k + i)).set_length(250) for i in Ghost.dir_path]
-        
-        self.reset()
+            
+    def respawn(self):
+        self.update_scatter_matrix()
 
-    def reset(self):
-        self.pos = self.initial_pos
+        self.pos = self.spawn_pos
         self.set_sprite(self.sprite_normal[-1])
         self.state = Ghost.CHASE
         self._next_pos = Vec(0, 0)
@@ -338,7 +396,7 @@ class Ghost(Mover):
 
     def set_pos(self, pos = Vec(0, 0)):
         super(Ghost, self).set_pos(pos)
-        self.initial_pos = pos
+        self.spawn_pos = pos
         return self
 
     def get_angle_index(self):
@@ -362,53 +420,48 @@ class Ghost(Mover):
                 self._next_pos = self.pos
 
         return (self._next_pos - self.pos).norm()
-        
+
+    def update_scatter_matrix(self):
+        maze = self.parent.get_maze()
+        r, c = maze.get_max_cols(), maze.get_max_rows()
+
+        self.scatter_pos = self.pos
+        while maze.get_tile(self.scatter_pos).is_wall() or (self.pos - self.scatter_pos).mag_manhattan() < 1:
+            self.scatter_pos = Vec(random.randint(0, r - 1), random.randint(0, c - 1))
+
+        self.scatter_matrix = search_dijkstra([self.scatter_pos], c, r, self.parent.get_maze().get_adj_nodes)
+
     def chase(self):
-        self.set_sprite(self.sprite_normal[self.get_angle_index()])
-
-        interv = self.t % self.len_interv
-        if interv < self.mid:
-            vel = self.get_direction(self.parent.player_search_matrix) * self.chase_vel
-        elif interv >= self.mid:
-            if interv == self.mid:
-                maze = self.parent.get_maze()
-                r, c = maze.get_max_cols(), maze.get_max_rows()
-
-                p = Vec(0, 0)
-                while maze.get_tile(p).is_wall() and (self.pos - p).mag_manhattan > 5:
-                    p = Vec(random.randint(0, r - 1), random.randint(0, c - 1))
-
-                self.search_matrix = search_dijkstra([p], c, r, maze.get_adj_nodes)
+        phase = self.t % self.len_interv
+        vel = Vec(0, 0)
         
-            vel = self.get_direction(self.search_matrix) * self.scatter_vel
+        if phase < self.mid:
+            vel = self.get_direction(self.parent.player_search_matrix) * self.chase_vel
+        elif phase == self.mid:
+            self.update_scatter_matrix()
+        else:
+            if (self.scatter_pos - self.pos).mag_manhattan() < 1:
+                self.update_scatter_matrix()
+
+            vel = self.get_direction(self.scatter_matrix) * self.scatter_vel
         
         self.set_vel(vel)
+
+    def retreat(self):
+        if (self.scatter_pos - self.pos).mag_manhattan() < 1:
+            self.update_scatter_matrix()
+
+        self.set_vel(self.get_direction(self.scatter_matrix) * self.scatter_vel)
 
     def update(self):
         super(Ghost, self).update()
     
         if self.state == Ghost.CHASE:
             self.set_sprite(self.sprite_normal[self.get_angle_index()])
-
-            interv = self.t % self.len_interv
-            if interv < self.mid:
-                self.set_vel(self.get_direction(self.parent.player_search_matrix) * self.chase_vel)
-            elif interv >= self.mid:
-                if interv == self.mid:
-                    maze = self.parent.get_maze()
-                    r, c = maze.get_max_cols(), maze.get_max_rows()
-                    p = Vec(0, 0)
-
-                    while maze.get_tile(p).is_wall() and (self.pos - p).mag_manhattan > 5:
-                        p = Vec(random.randint(0, r - 1), random.randint(0, c - 1))
-
-                    self.search_matrix = search_dijkstra([p], c, r, maze.get_adj_nodes)
-            
-                self.set_vel(self.get_direction(self.search_matrix) * self.scatter_vel)
-            
+            self.chase()
         elif self.state == Ghost.EDIBLE:
             self.set_sprite(Ghost.Sprite_Edible[self.get_angle_index()])
-            self.set_vel(self.get_direction(self.parent.player_search_matrix_reverse) * self.fright_vel)
+            self.retreat()
         elif self.state == Ghost.EATEN:
             self.set_sprite(Ghost.Sprite_Eyes[self.get_angle_index()])
             self.set_vel(self.get_direction(self.parent.home_search_matrix) * self.home_vel)
@@ -467,7 +520,6 @@ class Clyde(Ghost):
         self.scatter_vel = 0.02
         self.home_vel = 0.30
 
-
 class Ink(Ghost):
     def __init__(self, parent):
         self.sprite_normal = [TL.load_sprite_animation(get_path("ink_" + i)).set_length(250) for i in Ghost.dir_path]
@@ -495,90 +547,225 @@ class Shadow(Ghost):
         self.home_vel = 0.30
 
 class PacManGame(object):
-    def loadMap(self, path):
-        file = open(path, "r")
+    def __init__(self, minim):
+        try:    
+            self.minim = minim
+            self.renderer = TL.SpriteRenderer()
 
-        self.player = Player(self).set_pos(Vec(1, 1))
-        self.ghosts = []
-        self.ghost_home = []
-        self.num_pellets = 0
+            self.load_sounds()
+            self.load_game("map1.mz")
+        except Exception as ex:
+            util.Error.log("PacMan Initialization", ex)
 
-        (x, y) = (0, 0)
-        arr = []
-        for i in file.readlines():
-            elem = i.replace("\n", "").split(";")
+    def update(self, event):
+        try:
+            t = util.get_millis()
+            if t - self.t > 1:
+                self.konami_code(event)
+                self.update_icons()
 
-            x = 0
-            row = []
-            for j in elem:
-                cell = TileUndefined()
-                pos = Vec(x, y)
+                self.updatefn(event)
+                self.t = t
+                
+                if self.konami:
+                    self.msg = "KONAMI!"
+        except Exception as ex:
+            util.Error.log("PacMan Runtime", ex)
 
-                if j == "P":
-                    self.player.set_pos(pos)
-                    cell = TileEmpty()
-                elif any((j == x for x in ["B", "C", "I", "S", "G"])):
-                    fn = Ghost
-                    if j == "B":
-                        fn = Blink
-                    elif j == "C":
-                        fn = Clyde
-                    elif j == "I":
-                        fn = Ink
-                    elif j == "S":
-                        fn = Shadow
-                    
-                    self.ghosts.append(fn(self).set_pos(pos))
-                    self.ghost_home.append(pos)
-                    cell = TileGhostHome()
-                elif j == " ":
-                    cell = TileEmpty()
-                elif j == "#":
-                    cell = TileWall()
-                elif j == "+":
-                    cell = TileFood()
-                    self.num_pellets += 1
-                elif j == "-":
-                    cell = TilePowerPellet()
-                    self.num_pellets += 1
+    def game_loop(self, event):
+        self.frame.update()
+        self.frame.render()
+        
+        self.msg = "SCORE:{0} FPS:{1:2.2f} LVL:{2}".format(self.player.score, util.get_framerate(), self.level)
+        self.player_get_input(self.player, event)
+        self.player_eat_tile(self.player)
+        
+        if self.maze.is_cleared():
+            self.next_level()
+        if self.player.changedTilePos():
+            self.update_player_search_matrix()
 
-                row.append(cell)
+    def play_intro(self):
+        self.stop_all_sounds()
+        self.frame.render()
 
-                x += 1
-            arr.append(row)
-            y += 1
+        self.t = 0
+        self.power_up_timer = 0
 
-        file.close()
+        self.sound_intro.rewind()
+        self.sound_intro.play()
 
-        self.maze = Maze().set_buffer(arr)
+        def update(event):
+            self.msg = "PACMAN"
+            if event.any_key_pressed() or not self.sound_intro.isPlaying():
+                self.updatefn = self.game_loop
+                self.sound_siren.loop()
+        
+        self.updatefn = update
 
-        n = 100
-        c, r = self.maze.get_max_cols(), self.maze.get_max_rows() + 1
-        k = max(c, r) + 1
-        self.frame = TL.Frame().resize(n * k, n * k).set_tile_scale(n, n).set_pos(Vec(0.5, 0.5))
-        self.frame.set_renderer(self.renderer)
+    def respawn_entities(self):
+        self.player.respawn()
+        
+        for i in self.ghosts:
+            i.respawn()
+
+    def load_game(self, path):
+        self.loadMap(path)
+        self.new_game()
+        self.play_intro()
+
+    def new_game(self):
+        self.player.score = 0
+        self.level = 0
+        self.lives = 3
+        self.msg = "PACMAN"
+        
+        self.konami = False
+        self.konami_stack = 0
+        self.konami_last_press = 0
+        self.stack = []
+
+        self.maze.reset()
+        self.respawn_entities()
+
+    def replay_level(self):
+        self.respawn_entities()
+        self.play_intro()
+
+    def next_level(self):
+        self.level += 1
+        self.msg = "NEXT LEVEL {0}".format(self.level)
+        self.maze.reset()
+        self.respawn_entities()
+
+        t = util.get_millis()
+        def wait(event):
+            if util.get_millis() - t > 2000:
+                self.play_intro()
+
+        self.updatefn = wait
+
+    def player_death(self):
+        self.lives -= 1
+
+        if self.lives == 0:
+            self.msg = "GAME OVER!"
+
+            t = util.get_millis()
+            def ending(event):
+                self.frame.render()
+
+                if util.get_millis() - t > 2000:
+                    self.replay_level()
+
+            self.updatefn = ending
+        else:
+            t = util.get_millis()
+            def continue_game(event):
+                self.frame.render()
+
+                if util.get_millis() - t > 2000:
+                    self.respawn_entities()
+                    self.new_game()
+                    self.play_intro()
+
+            self.msg = "{0} LIVES LEFT".format(self.lives)
+            self.updatefn = continue_game
 
 
-        self.icons_lives = []
+    def quit_game(self):
+        self.stop_all_sounds()
+    
+    def get_maze(self): 
+        return self.maze
 
-        x = 0
-        for i in ["player/0.png"] * 3:
-            self.icons_lives.append(Icon(TL.load_sprite(get_path(i))).set_pos(Vec(x, r - 1))) 
-            x += 1
+    def get_score(self):
+        return self.msg
 
-
-        for i in [self.maze] + self.ghosts + [self.player] + self.icons_lives:
-            self.frame.add_child(i)
-
-        self.update_player_search_matrix()
-        self.home_search_matrix = search_dijkstra(self.ghost_home, self.maze.get_max_rows(), self.maze.get_max_cols(), self.maze.get_adj_nodes)
-
+    def get_frame_buffer(self):
+        return self.frame.get_frame_buffer()
+    
     def update_player_search_matrix(self):
         cols, rows = self.maze.get_max_cols(), self.maze.get_max_rows()
         pos = self.player.pos.apply(round).apply(int)
 
         self.player_search_matrix = search_dijkstra([pos], rows, cols, self.maze.get_adj_nodes)
         self.player_search_matrix_reverse = search_dijkstra_reverse([pos], rows, cols, self.maze.get_adj_nodes)
+
+    def player_eat_tile(self, player):
+        def powerup():
+            self.power_up_timer = 300
+            self.stop_all_sounds()
+            self.sound_siren_retreat.loop()
+
+            for i in self.ghosts:
+                i.become_edible()
+
+        self.maze.eat_tile(player, self.sound_chomp, powerup)
+
+        score = 0
+        for i in self.ghosts:
+            score += i.get_eaten(player)
+        
+        player.score += score
+
+        if self.power_up_timer > 1: 
+            self.power_up_timer -= 1
+        elif self.power_up_timer == 1:
+            for i in self.ghosts:
+                i.become_inedible()
+
+            self.power_up_timer = 0
+            self.stop_all_sounds()
+            self.sound_siren.loop()
+
+    def player_get_input(self, player, event):
+        vel = Vec(0, 0)            
+        pressed = lambda lst: any([event.key_is_pressed(i) for i in lst])
+        
+        if event.mouse_is_pressed():
+            _dir = event.mouse_dir()
+            vel = Vec(_dir.x, _dir.y).apply(round)
+
+        if pressed(["a", Ev.Key.LEFT]):
+            vel.x = -1
+        elif pressed(["d", Ev.Key.RIGHT]):
+            vel.x = +1
+        if pressed(["w", Ev.Key.UP]):
+            vel.y = -1
+        elif pressed(["s", Ev.Key.DOWN]):
+            vel.y = +1
+            
+        player.set_vel(vel)    
+
+    def konami_code(self, event):
+        def next(num, key):
+            if self.konami_stack == num and event.key_is_pressed(key):
+                self.konami_stack += 1
+                self.konami_last_press = util.get_millis()
+
+                return True
+
+            return False
+
+        lst = [Ev.Key.LEFT, Ev.Key.LEFT, Ev.Key.RIGHT, Ev.Key.RIGHT] + [Ev.Key.UP, Ev.Key.DOWN] * 2 + ["a", "b"]
+    
+        for i in range(0, len(lst)):
+            if next(i, lst[i]):
+                break
+        
+        if util.get_millis() - self.konami_last_press > 5000:
+            self.konami_stack = 0
+
+        if self.konami_stack == len(lst):
+            self.konami_stack = 0
+            self.konami = not self.konami
+
+    def update_icons(self):
+        for i in range(0, self.lives):
+            self.icons_lives[i].visible = True
+        for i in range(self.lives, 3):
+            self.icons_lives[i].visible = False
 
     def load_sounds(self):
         self.sound_intro = self.minim.loadFile("sounds/beginning.wav")
@@ -602,204 +789,36 @@ class PacManGame(object):
         self.sound_siren.pause()
         self.sound_siren_retreat.pause()
 
-    def quit_game(self):
-        self.stop_all_sounds()
-    
-    def get_maze(self): 
-        return self.maze
+    def loadMap(self, path):
+        self.maze = Maze()
 
-    def get_score(self):
-        return self.msg
+        self.player = []
+        self.ghosts = []
+        self.maze.load_map(self, path, self.player, self.ghosts)
 
-    def get_frame_buffer(self):
-        return self.frame.get_frame_buffer()
+        self.player = self.player[-1]
 
-    def play_intro(self):
-        self.frame.render()
+        n = 100
+        c, r = self.maze.get_max_cols(), self.maze.get_max_rows() + 1
+        k = max(c, r) + 1
 
-        self.t = 0
-        self.power_up_timer = 0
+        self.frame = TL.Frame().resize(n * k, n * k).set_tile_scale(n, n).set_pos(Vec(0.5, 0.5))
+        self.frame.set_renderer(self.renderer)
 
-        self.sound_intro.rewind()
-        self.sound_intro.play()
+        self.icons_lives = []
 
-        def update(event):
-            if event.any_key_pressed() or not self.sound_intro.isPlaying():
-                self.msg = "PACMAN"
-                self.updatefn = self.game_loop
-                self.sound_siren.loop()
-        
-        self.updatefn = update
+        x = 0
+        for i in ["player/0.png"] * 3:
+            self.icons_lives.append(Icon(TL.load_sprite(get_path(i))).set_pos(Vec(x, r - 1))) 
+            x += 1
 
-    def reset_game(self):
-        self.player.score = 0
-        self.level = 0
-        self.lives = 3
-        self.msg = "PACMAN"
-        
-        self.konami = False
-        self.konami_stack = 0
+        for i in [self.maze] + self.ghosts + [self.player] + self.icons_lives:
+            self.frame.add_child(i)
 
-        self.stack = []
-
-        self.player.reset()
+        self.ghost_home = []
         for i in self.ghosts:
-            i.reset()
+            self.ghost_home.append(i.pos)
 
-    def load_game(self):
-        self.loadMap("map1.mz")
-        self.reset_game()
-        self.play_intro()
-
-    def next_level(self):
-        self.level += 1
-        self.msg = "NEXT LEVEL {0}".format(self.level)
-        self.maze.reset()
-
-        self.player.reset()
-        for i in self.ghosts:
-            i.reset()
-
-        t = util.get_millis()
-        def wait(event):
-            if util.get_millis() - t > 2000:
-                self.play_intro()
-
-        self.updatefn = wait
-
-    def player_death(self):
-        self.lives -= 1
-
-        if self.lives == 0:
-            self.msg = "GAME OVER!"
-
-            t = util.get_millis()
-            def ending(event):
-                self.frame.render()
-
-                if util.get_millis() - t > 2000:
-                    self.reset_game()
-                    self.play_intro()
-
-            self.updatefn = ending
-        else:
-            t = util.get_millis()
-            def continue_game(event):
-                self.frame.render()
-
-                if util.get_millis() - t > 2000:
-                    self.player.reset()
-                    for i in self.ghosts:
-                        i.reset()
-
-                    self.play_intro()
-
-            self.msg = "{0} LIVES LEFT".format(self.lives)
-            self.updatefn = continue_game
-
-    def game_loop(self, event):
-        px, py = self.player.pos.apply(round)
-        
-        self.msg = "SCORE:{1} FPS:{2:2.2f} LVL:{4} LIFE:{5}".format(self.maze.eaten_food,
-                 self.player.score, util.get_framerate(), self.power_up_timer, self.level, self.lives)
-        self.player_update(self.player, event)
-        self.player_eat_tile(self.player)
-        self.frame.update()
-        self.frame.render()
-        
-        Px, Py = self.player.pos.apply(round)
-        if px != Px or py != Py:
-            self.update_player_search_matrix()
-
-        if self.maze.is_cleared():
-            self.next_level()
-
-    def player_eat_tile(self, player):
-        def powerup():
-            self.power_up_timer = 300
-
-            for i in self.ghosts:
-                i.become_edible()
-
-        self.maze.eat_tile(player, self.sound_chomp, powerup)
-
-        score = 0
-        for i in self.ghosts:
-            score += i.get_eaten(player)
-        
-        player.score += score
-
-        if self.power_up_timer > 1: 
-            self.power_up_timer -= 1
-        elif self.power_up_timer == 1:
-            for i in self.ghosts:
-                i.become_inedible()
-
-            self.power_up_timer = 0
-
-    def player_update(self, player, event):
-        vel = Vec(0, 0)            
-        pressed = lambda lst: any([event.key_is_pressed(i) for i in lst])
-        
-        if event.mouse_is_pressed():
-            _dir = event.mouse_dir()
-            vel = Vec(_dir.x, _dir.y).apply(round)
-
-        if pressed(["a", Ev.Key.LEFT]):
-            vel.x = -1
-        elif pressed(["d", Ev.Key.RIGHT]):
-            vel.x = +1
-        if pressed(["w", Ev.Key.UP]):
-            vel.y = -1
-        elif pressed(["s", Ev.Key.DOWN]):
-            vel.y = +1
-            
-        player.set_vel(vel)    
-
-    def __init__(self, minim):
-        try:    
-            self.minim = minim
-            self.renderer = TL.SpriteRenderer()
-
-            self.load_sounds()
-            self.load_game()
-        except Exception as ex:
-            util.Error.log("PacMan Initialization", ex)
-
-    def konami_code(self, event):
-        def next(num, key):
-            if self.konami_stack == num and event.key_is_pressed(key):
-                self.konami_stack += 1
-                return True
-
-            return False
-
-        lst = [Ev.Key.LEFT, Ev.Key.LEFT, Ev.Key.RIGHT, Ev.Key.RIGHT] + [Ev.Key.UP, Ev.Key.DOWN] * 2 + ["a", "b"]
-        for i in range(0, len(lst)):
-            if next(i, lst[i]):
-                break
-
-        if self.konami_stack == len(lst):
-            self.konami_stack = 0
-            self.konami = not self.konami
-
-    def update_icons(self):
-        for i in range(0, self.lives):
-            self.icons_lives[i].visible = True
-        for i in range(self.lives, 3):
-            self.icons_lives[i].visible = False
-
-    def update(self, event):
-        try:
-            t = util.get_millis()
-            if t - self.t > 1:
-                self.konami_code(event)
-                self.update_icons()
-
-                self.updatefn(event)
-                self.t = t
-                
-                if self.konami:
-                    self.msg = "KONAMI!"
-        except Exception as ex:
-            util.Error.log("PacMan Runtime", ex)
+        self.update_player_search_matrix()
+        self.home_search_matrix = search_dijkstra(self.ghost_home, self.maze.get_max_rows(), self.maze.get_max_cols(), self.maze.get_adj_nodes)
+        self.respawn_entities()
