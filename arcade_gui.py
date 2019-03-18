@@ -5,17 +5,18 @@ import arcade as STYLE
 import events as EVENTS
 import os
 import copy
+import time
 import random
 
 class UI_MainMenu(STYLE.UI_State):
     def __init__(self, parent):
         super(UI_MainMenu, self).__init__(parent)
         
-        title = "PyRAE"
+        title = "PyPac"
         logo = STYLE.create_label(0.2, 0.1, 0.8, 0.4, title)
         logo.frame = UI.NoneWidget()
 
-        subtitle = STYLE.create_label(0.2, 0.35, 0.8, 0.45, "Python RETRO ARCADE EMULATOR")
+        subtitle = STYLE.create_label(0.2, 0.35, 0.8, 0.45, "python Pacman clone")
         subtitle.frame = UI.NoneWidget()
 
         self.center_frame.add_widget(logo).add_widget(subtitle)
@@ -23,7 +24,7 @@ class UI_MainMenu(STYLE.UI_State):
         y = 0.5
         dy = 0.08
         padding = 0.02
-        for i, j in [("Play", UI_Play), ("Options", UI_Options), ("Quit", UI_Exit)]:
+        for i, j in [("Play", UI_PlayPacMan), ("Options", UI_Options), ("Quit", UI_Exit)]:
             self.center_frame.add_widget(STYLE.create_button(0.2, y, 0.8, y + dy, i, self.parent.create_state_changer(j)))
             y += dy + padding
 
@@ -47,25 +48,6 @@ class UI_MainMenu(STYLE.UI_State):
 
         self.update_func = fn_update
 
-class UI_Play(STYLE.UI_State):
-    def __init__(self, parent):
-        super(UI_Play, self).__init__(parent)
-
-        x1, x2 = 0.2, 0.8
-        y = 0.2
-        dy = 0.08
-        padding = 0.02
-
-        for (i, j) in [("PacMan", UI_PlayPacMan)]:
-            self.center_frame.add_widget(STYLE.create_button(x1, y, x2, y + dy, i, self.parent.create_state_changer(j)))
-            y += dy + padding
-
-        for i in []:
-            self.center_frame.add_widget(STYLE.create_label(x1, y, x2, y + dy, i))
-            y += dy + padding
-
-        self.center_frame.add_widget(STYLE.create_button(x1, y, x2, y + dy, "BACK", self.parent.create_state_changer(UI_MainMenu)))
-
 class UI_PlayPacMan(STYLE.UI_State):
     def __init__(self, parent):
         super(UI_PlayPacMan, self).__init__(parent)
@@ -77,7 +59,7 @@ class UI_PlayPacMan(STYLE.UI_State):
 
         def quit_game():
             game.quit_game()
-            self.parent.change_state(UI_Play)
+            self.parent.change_state(UI_MainMenu)
             self.parent.highscores.add_new_score("Player", game.get_score())
         
         def _update(event):

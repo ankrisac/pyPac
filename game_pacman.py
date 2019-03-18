@@ -656,7 +656,8 @@ class PacManGame(object):
                 self.frame.render()
 
                 if util.get_millis() - t > 2000:
-                    self.replay_level()
+                    self.new_game()
+		    self.play_intro()
 
             self.updatefn = ending
         else:
@@ -666,8 +667,7 @@ class PacManGame(object):
 
                 if util.get_millis() - t > 2000:
                     self.respawn_entities()
-                    self.new_game()
-                    self.play_intro()
+                    self.replay_level()
 
             self.msg = "{0} LIVES LEFT".format(self.lives)
             self.updatefn = continue_game
@@ -771,11 +771,12 @@ class PacManGame(object):
         self.sound_intro = self.minim.loadFile("sounds/beginning.wav")
         self.sound_chomp = self.minim.loadFile("sounds/chomp.mp3")
         self.sound_death = self.minim.loadFile("sounds/death.wav")
+
         self.sound_eatfruit = self.minim.loadFile("sounds/eatfruit.wav")
         self.sound_eatghost = self.minim.loadFile("sounds/eatghost.wav")
         self.sound_extrapac = self.minim.loadFile("sounds/extrapac.wav")
-        self.sound_intermission = self.minim.loadFile("sounds/intermission.wav")
-        
+
+        self.sound_intermission = self.minim.loadFile("sounds/intermission.wav")        
         self.sound_siren = self.minim.loadFile("sounds/siren.mp3")
         self.sound_siren_retreat = self.minim.loadFile("sounds/siren_retreat.mp3")
 
@@ -783,8 +784,11 @@ class PacManGame(object):
         self.sound_intro.pause()
         self.sound_chomp.pause()
         self.sound_death.pause()
+
         self.sound_eatfruit.pause()
+	self.sound_eatghost.pause()
         self.sound_extrapac.pause()
+
         self.sound_intermission.pause()
         self.sound_siren.pause()
         self.sound_siren_retreat.pause()
