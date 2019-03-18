@@ -1,7 +1,2 @@
-# PyRAE - Python Retro Arcade Emulator
-
-Arcade-Like Emulator
-Created in Processing.py
-
-# Games
-PacMan
+# PyPac
+Pacman clone made in python with processing.py library
