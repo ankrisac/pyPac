@@ -81,7 +81,8 @@ class Tile(TL.Entity):
         pass
 
 class TileUndefined(Tile):
-    Sprite = TL.load_sprite(get_path("wall/undefined.png"))
+    Sprite = TL.load_sprite(get_path("wall/empty.png"))
+    #replace wall/empty.png with your own undefined.png if you want
 
     def __init__(self):
         super(TileUndefined, self).__init__()
@@ -95,7 +96,7 @@ class TileEmpty(Tile):
         self.set_sprite(TileEmpty.Sprite)
         
 class TileGhostHome(Tile):
-    Sprite = TL.load_sprite(get_path("wall/ghost_home.png"))
+    Sprite = TL.load_sprite(get_path("wall/empty.png"))
     
     def __init__(self):
         super(TileGhostHome, self).__init__()
