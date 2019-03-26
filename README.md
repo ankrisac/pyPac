@@ -1,5 +1,6 @@
 # PyPac
 Pacman clone made in python
+[Itch.io page](https://sigmaphi.itch.io/pypac)
 
 ## Compilation Instructions
 ### Dependencies
