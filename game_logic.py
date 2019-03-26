@@ -4,6 +4,7 @@ import events as Ev
 import copy
 import random
 import math
+import os
 
 def get_path(path):
     return "sprites/pacman/" + path
@@ -366,7 +367,7 @@ class PacManGame(object):
         (x, y) = (0, 0)
         arr = []
         for i in file.readlines():
-            elem = i.replace("\n", "").split(";")
+            elem = i.replace(os.linesep, "").split(";")
 
             x = 0
             row = []

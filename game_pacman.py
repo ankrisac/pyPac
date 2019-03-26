@@ -7,6 +7,7 @@ import random
 import math
 from util import Vec
 import util
+import os
 
 def create_dijkstra_search_function(mapping_function):
     def search_func(search_list, max_cols, max_rows, get_adj_node):
@@ -80,7 +81,7 @@ class Tile(TL.Entity):
         pass
 
 class TileUndefined(Tile):
-    Sprite = TL.load_sprite(get_path("wall/empty.png"))
+    Sprite = TL.load_sprite(get_path("wall/undefined.png"))
 
     def __init__(self):
         super(TileUndefined, self).__init__()
@@ -94,7 +95,7 @@ class TileEmpty(Tile):
         self.set_sprite(TileEmpty.Sprite)
         
 class TileGhostHome(Tile):
-    Sprite = TL.load_sprite(get_path("wall/empty.png"))
+    Sprite = TL.load_sprite(get_path("wall/ghost_home.png"))
     
     def __init__(self):
         super(TileGhostHome, self).__init__()
@@ -223,7 +224,8 @@ class Maze(TL.TileGrid):
         (x, y) = (0, 0)
         arr = []
         for i in file.readlines():
-            elem = i.replace("\n", "").split(";")
+            elem = i.replace(os.linesep, "").replace("\r", "").replace("\n", "").split(";")
+            print(elem)
 
             x = 0
             row = []

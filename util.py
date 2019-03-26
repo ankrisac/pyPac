@@ -1,6 +1,7 @@
 import math
 import time
 import events
+import os
 
 begin_time = time.time()
 
@@ -30,7 +31,7 @@ class Error(object):
 
         msg = "Err #{0} : {1}".format(Error.count, msg)
 
-        Error.log_file.write(msg + "\n")
+        Error.log_file.write(msg + os.linesep)
         print(msg)
         
         Error.count += 1
