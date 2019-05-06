@@ -28,7 +28,7 @@ class UI_MainMenu(STYLE.UI_State):
             self.center_frame.add_widget(STYLE.create_button(0.2, y, 0.8, y + dy, i, self.parent.create_state_changer(j)))
             y += dy + padding
 
-        credit = STYLE.create_label(0.5, 0.9, 1, 0.95, "Created By Sigmaphi")
+        credit = STYLE.create_label(0.5, 0.9, 1, 0.95, "Created By PolyCrystal")
         credit.frame = UI.NoneWidget()
 
         self.right_frame.add_widget(credit)
@@ -160,8 +160,8 @@ class ShaderManager(object):
         
         _path = sketchPath()
         
-        self.ui_shaders = map(map_shader("UI Shader"), get_shaders_dir(os.path.join(_path, "shaders", "ui")) + get_shaders_dir(os.path.join(_path, "shaders")))
-        self.game_shaders = map(map_shader("Game Shader"), get_shaders_dir(os.path.join(_path, "shaders", "game")) + get_shaders_dir(os.path.join(_path, "shaders")))
+        self.ui_shaders = map(map_shader("UI Shader"), (get_shaders_dir(os.path.join(_path, "shaders"))))
+        self.game_shaders = map(map_shader("Game Shader"), (get_shaders_dir(os.path.join(_path, "shaders"))))
         
         return self
     
