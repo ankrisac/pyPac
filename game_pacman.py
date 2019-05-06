@@ -784,17 +784,12 @@ class PacManGame(object):
         self.sound_siren_retreat = self.minim.loadFile("sounds/siren_retreat.mp3")
 
     def stop_all_sounds(self):
-        self.sound_intro.pause()
-        self.sound_chomp.pause()
-        self.sound_death.pause()
+        players = [self.sound_intro, self.sound_chomp, self.sound_death,\
+            self.sound_eatfruit, self.sound_eatghost, self.sound_extrapac,\
+            self.sound_intermission, self.sound_siren, self.sound_siren_retreat]
 
-        self.sound_eatfruit.pause()
-	self.sound_eatghost.pause()
-        self.sound_extrapac.pause()
-
-        self.sound_intermission.pause()
-        self.sound_siren.pause()
-        self.sound_siren_retreat.pause()
+        map(lambda i: i.pause(), players)
+        self.sound_siren.mute()
 
     def loadMap(self, path):
         self.maze = Maze()

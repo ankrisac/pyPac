@@ -59,6 +59,7 @@ class UI_PlayPacMan(STYLE.UI_State):
 
         def quit_game():
             game.quit_game()
+            print "stopping sounds!"
             self.parent.change_state(UI_MainMenu)
             self.parent.highscores.add_new_score("Player", game.get_score())
         
@@ -142,56 +143,49 @@ class UI_Exit(STYLE.UI_State):
 
 class ShaderManager(object):
     def __init__(self):
-        self.ui_shaders = []
-        self.game_shaders = []
+        self.shaders = []
+        self.game_shader = 0
+        self.ui_shader = 0
 
         self.load_shaders()
-        self.current_ui_shader = 0
-        self.current_game_shader = 0 
-
+        
     def load_shaders(self):
         def get_shaders_dir(path):
             shaders_path = filter(lambda x: os.path.isfile(os.path.join(path, x)), os.listdir(path))
             shaders_abs_path = map(lambda x: os.path.join(path, x), shaders_path)
-            return shaders_abs_path
+            return sorted(shaders_abs_path)
 
-        def map_shader(name):
-            return lambda i: (loadShader(i), name + " - " + os.path.splitext(os.path.basename(i))[0])
+        def map_shader():
+            return lambda i: (loadShader(i), os.path.splitext(os.path.basename(i))[0])
         
         _path = sketchPath()
         
-        self.ui_shaders = map(map_shader("UI Shader"), (get_shaders_dir(os.path.join(_path, "shaders"))))
-        self.game_shaders = map(map_shader("Game Shader"), (get_shaders_dir(os.path.join(_path, "shaders"))))
-        
+        self.shaders = map(map_shader(), get_shaders_dir(os.path.join(_path, "shaders")))
         return self
     
     def next_ui_shader(self):
-        self.current_ui_shader += 1
-        if self.current_ui_shader >= len(self.ui_shaders):
-            self.current_ui_shader = 0
+        self.ui_shader = (self.ui_shader + 1) % len(self.shaders)
         return self
 
     def next_game_shader(self):
-        self.current_game_shader += 1
-        if self.current_game_shader >= len(self.game_shaders):
-            self.current_game_shader = 0
+        self.game_shader = (self.game_shader + 1) % len(self.shaders)
         return self
 
     def get_ui_shader(self):
-        (_shader, _) = self.ui_shaders[self.current_ui_shader]
+        (_shader, _) = self.shaders[self.ui_shader]
+        return _shader
+
+    def get_game_shader(self):
+        (_shader, _) = self.shaders[self.game_shader]
         return _shader
 
     def get_ui_shader_name(self):
-        (_, name) = self.ui_shaders[self.current_ui_shader]
-        return name
-
-    def get_game_shader(self):
-        (_shader, _) = self.game_shaders[self.current_game_shader]
-        return _shader
-
+        (_, name) = self.shaders[self.ui_shader]
+        return "UI Shader - " + name
+    
     def get_game_shader_name(self):
-        (_, name) = self.game_shaders[self.current_game_shader]
-        return name
+        (_, name) = self.shaders[self.game_shader]
+        return "Game Shader - " + name
 
 class Arcade(object):
     def change_state(self, state_constructor):

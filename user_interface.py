@@ -141,7 +141,6 @@ class Window(Panel):
             self._buffer.textAlign(LEFT, BOTTOM)
             self._buffer.textSize(self.font_size)
             self._buffer.fill(100)
-            self._buffer.text("Window FPS : " + str(frameRate), 50, 50)
     
             super(Window, self).render(self._buffer)
     
