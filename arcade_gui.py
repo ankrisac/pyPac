@@ -28,7 +28,7 @@ class UI_MainMenu(STYLE.UI_State):
             self.center_frame.add_widget(STYLE.create_button(0.2, y, 0.8, y + dy, i, self.parent.create_state_changer(j)))
             y += dy + padding
 
-        credit = STYLE.create_label(0.5, 0.9, 1, 0.95, "Created By PolyCrystal")
+        credit = STYLE.create_label(0.5, 0.9, 1, 0.95, "Created By ankrisac")
         credit.frame = UI.NoneWidget()
 
         self.right_frame.add_widget(credit)
@@ -144,8 +144,8 @@ class UI_Exit(STYLE.UI_State):
 class ShaderManager(object):
     def __init__(self):
         self.shaders = []
-        self.game_shader = 0
-        self.ui_shader = 0
+        self.game_shader = 2
+        self.ui_shader = 1
 
         self.load_shaders()
         
