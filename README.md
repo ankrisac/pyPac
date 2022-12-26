@@ -1,5 +1,6 @@
 # PyPac
 Pacman clone made in python (10th grade project)
+
 [Itch.io page](https://ankrisac.itch.io/pypac)
 
 ## Features
